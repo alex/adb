@@ -95,7 +95,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let todo_items = get_todo_items(&client, TODOIST_API_TOKEN)?;
 
     let stream = TcpStream::connect("192.168.7.238:9100")?;
-    let mut w = epson::Writer::open(epson::Model::T20II, Box::new(stream))?;
+    let mut w = epson::Writer::open(epson::Model::T30II, Box::new(stream))?;
+    w.set_unicode()?;
 
     w.speed(5)?;
 
