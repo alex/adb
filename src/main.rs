@@ -125,7 +125,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     w.underline(false)?;
 
     for todo in todo_items {
-        w.write_all(format!("☐ {}\n", todo).as_bytes())?;
+        w.write_all(format!("[ ] {}\n", todo).as_bytes())?;
     }
 
     w.feed(5)?;
