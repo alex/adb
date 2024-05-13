@@ -34,7 +34,7 @@ pub fn get_completion(
         .post("https://api.openai.com/v1/chat/completions")
         .bearer_auth(api_token)
         .json(&CompletionRequest {
-            model: "gpt-4-turbo",
+            model: "gpt-4o",
             messages: vec![CompletionRequestMessage {
                 role: "user",
                 content: prompt,
