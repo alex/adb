@@ -1,8 +1,10 @@
 use std::io::Write;
 use std::net::TcpStream;
 
-const TODOIST_API_TOKEN: &str = env!("TODOIST_API_TOKEN");
-const OPENAI_API_TOKEN: &str = env!("OPENAI_API_TOKEN");
+static TODOIST_API_TOKEN: std::sync::LazyLock<String> =
+    std::sync::LazyLock::new(|| std::env::var("TODOIST_API_TOKEN").expect("Missing env var"));
+static OPENAI_API_TOKEN: std::sync::LazyLock<String> =
+    std::sync::LazyLock::new(|| std::env::var("OPENAI_API_TOKEN").expect("Missing env var"));
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let today = chrono::offset::Local::now();
@@ -11,9 +13,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Fetching weather...");
     let weather = adb::weather::get_weather(&client, 38.9067, -77.0279)?;
     println!("Fetching todo...");
-    let todo_items = adb::todoist::get_todo_items(&client, TODOIST_API_TOKEN)?;
+    let todo_items = adb::todoist::get_todo_items(&client, &TODOIST_API_TOKEN)?;
     println!("Fetching us history fact...");
-    let us_history_fact = adb::openai::get_completion(&client, OPENAI_API_TOKEN, &format!("Select a major US history fact that happened on today's date ({}) and write a one paragraph summary of it. Favor facts which are related to either democracy, law, science, or technology. Make your write up focus on the facts of what happened and minimize flowery language. Omit context that a smart, well-educated person, will already know. Do not include any text besides the one paragraph. Ensure it is accurate.", today.format("%B %d")))?;
+    let us_history_fact = adb::openai::get_completion(&client, &OPENAI_API_TOKEN, &format!("Select a major US history fact that happened on today's date ({}) and write a one paragraph summary of it. Favor facts which are related to either democracy, law, science, or technology. Make your write up focus on the facts of what happened and minimize flowery language. Omit context that a smart, well-educated person, will already know. Do not include any text besides the one paragraph. Ensure it is accurate.", today.format("%B %d")))?;
 
     let stream = TcpStream::connect("192.168.7.238:9100")?;
     let mut w = epson::Writer::open(epson::Model::T30II, Box::new(stream))?;
