@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Drawing App</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        .tools {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+        .brush-size-controls {
+            display: flex;
+            align-items: center;
+            background-color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .brush-label {
+            margin-right: 12px;
+            font-size: 14px;
+            color: #555;
+        }
+        .brush-options {
+            display: flex;
+            gap: 8px;
+        }
+        .brush-size-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f5f5f5;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .brush-size-btn:hover {
+            background-color: #e5e5e5;
+        }
+        .brush-size-btn.active {
+            border-color: #3366cc;
+            background-color: #f0f4ff;
+        }
+        .brush-preview {
+            background-color: black;
+            border-radius: 50%;
+        }
+        .brush-preview.thin {
+            width: 2px;
+            height: 2px;
+        }
+        .brush-preview.medium {
+            width: 6px;
+            height: 6px;
+        }
+        .brush-preview.thick {
+            width: 12px;
+            height: 12px;
+        }
+        canvas {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            cursor: crosshair;
+        }
+        button {
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            border: none;
+        }
+        #submitBtn {
+            background-color: #3366cc;
+            color: white;
+            box-shadow: 0 2px 4px rgba(51, 102, 204, 0.3);
+        }
+        #submitBtn:hover {
+            background-color: #2a55a5;
+        }
+        #clearBtn {
+            background-color: #f2f2f2;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+        #clearBtn:hover {
+            background-color: #e5e5e5;
+            color: #333;
+        }
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #e6f7e6;
+            color: #2e7d32;
+            display: none;
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Draw Something</h1>
+        <div id="thankYouMessage" class="message">
+            Thank you for submitting your drawing!
+        </div>
+        <div class="tools">
+            <div class="brush-size-controls">
+                <div class="brush-label">Brush Size:</div>
+                <div class="brush-options">
+                    <button class="brush-size-btn active" data-size="1">
+                        <div class="brush-preview thin"></div>
+                    </button>
+                    <button class="brush-size-btn" data-size="3">
+                        <div class="brush-preview medium"></div>
+                    </button>
+                    <button class="brush-size-btn" data-size="6">
+                        <div class="brush-preview thick"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <canvas id="drawingCanvas" width="600" height="400"></canvas>
+        <div style="display: flex; gap: 10px;">
+            <button id="clearBtn">Clear</button>
+            <button id="submitBtn">Submit</button>
+        </div>
+    </div>
+
+    <script>
+        // Global variable for brush size
+        var brushSize = 1;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('drawingCanvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            const submitBtn = document.getElementById('submitBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const thankYouMessage = document.getElementById('thankYouMessage');
+            const brushSizeButtons = document.querySelectorAll('.brush-size-btn');
+
+            let isDrawing = false;
+
+            // Setup high DPI canvas
+            setupHighDPICanvas(canvas);
+
+            // Initial drawing settings
+            ctx.lineWidth = brushSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = 'black';
+
+            // Brush size controls
+            brushSizeButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Update active button UI
+                    brushSizeButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // Set brush size
+                    brushSize = parseInt(this.getAttribute('data-size'));
+                    ctx.lineWidth = brushSize;
+                });
+            });
+
+            // Drawing event listeners
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+
+            // Touch support
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+
+            // Button event listeners
+            submitBtn.addEventListener('click', submitDrawing);
+            clearBtn.addEventListener('click', clearCanvas);
+
+            function startDrawing(e) {
+                isDrawing = true;
+
+                // Get mouse position
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Start at a crisp position
+                const roundX = Math.round(x);
+                const roundY = Math.round(y);
+
+                ctx.beginPath();
+                ctx.moveTo(roundX, roundY);
+            }
+
+            function draw(e) {
+                if (!isDrawing) return;
+
+                // Get mouse position
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Draw crisp lines by using integer positions
+                const roundX = Math.round(x);
+                const roundY = Math.round(y);
+
+                ctx.lineTo(roundX, roundY);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(roundX, roundY);
+            }
+
+            function handleTouch(e) {
+                e.preventDefault();
+                if (e.type === 'touchstart') {
+                    isDrawing = true;
+
+                    const touch = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+
+                    const roundX = Math.round(x);
+                    const roundY = Math.round(y);
+
+                    ctx.beginPath();
+                    ctx.moveTo(roundX, roundY);
+                }
+
+                if (isDrawing && e.type === 'touchmove') {
+                    const touch = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+
+                    const roundX = Math.round(x);
+                    const roundY = Math.round(y);
+
+                    ctx.lineTo(roundX, roundY);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(roundX, roundY);
+                }
+            }
+
+            function stopDrawing() {
+                isDrawing = false;
+                ctx.beginPath();
+            }
+
+            function clearCanvas() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.beginPath();
+            }
+
+            function submitDrawing() {
+                // Create a temporary canvas to ensure white background
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                // Fill with white background
+                tempCtx.fillStyle = 'white';
+                tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+                // Draw the current canvas content on top of the white background
+                tempCtx.drawImage(canvas, 0, 0);
+
+                // Convert the temp canvas (with white background) to PNG blob
+                tempCanvas.toBlob(function(blob) {
+                    // Create form data with raw PNG bytes
+                    const formData = new FormData();
+                    formData.append('image', blob, 'drawing.png');
+
+                    // Submit drawing
+                    fetch('/gram/', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        // Show thank you message
+                        thankYouMessage.style.display = 'block';
+
+                        // Clear canvas
+                        clearCanvas();
+
+                        // Hide message after 3 seconds
+                        setTimeout(() => {
+                            thankYouMessage.style.display = 'none';
+                        }, 3000);
+                    })
+                    .catch(error => {
+                        console.error('Error submitting drawing:', error);
+                        alert('There was an error submitting your drawing. Please try again.');
+                    });
+                }, 'image/png');
+            }
+        });
+
+        // Separate the high DPI setup into its own function
+        function setupHighDPICanvas(canvas) {
+            // Get the device pixel ratio
+            const dpr = window.devicePixelRatio || 1;
+
+            // Get the canvas dimensions from CSS
+            const rect = canvas.getBoundingClientRect();
+
+            // Set the canvas dimensions accounting for the device pixel ratio
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+
+            // Get context and scale
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.scale(dpr, dpr);
+
+            // Reset the CSS dimensions
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
+
+            // Enable image smoothing for sharper lines
+            ctx.imageSmoothingEnabled = false;
+        }
+    </script>
+</body>
+</html>
