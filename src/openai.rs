@@ -29,7 +29,7 @@ pub fn get_completion(
     client: &reqwest::blocking::Client,
     api_token: &str,
     prompt: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> anyhow::Result<String> {
     let response = client
         .post("https://api.openai.com/v1/chat/completions")
         .bearer_auth(api_token)

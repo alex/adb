@@ -32,7 +32,7 @@ pub fn get_weather(
     client: &reqwest::blocking::Client,
     lat: f64,
     lon: f64,
-) -> Result<Vec<(String, String)>, Box<dyn std::error::Error>> {
+) -> anyhow::Result<Vec<(String, String)>> {
     let point_response = client
         .get(format!("https://api.weather.gov/points/{lat},{lon}"))
         .header(reqwest::header::USER_AGENT, "adb/0.1.0")
