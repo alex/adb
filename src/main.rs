@@ -1,12 +1,39 @@
 use std::io::Write;
 use std::net::TcpStream;
 
+use clap::Parser;
+
 static TODOIST_API_TOKEN: std::sync::LazyLock<String> =
     std::sync::LazyLock::new(|| std::env::var("TODOIST_API_TOKEN").expect("Missing env var"));
 static OPENAI_API_TOKEN: std::sync::LazyLock<String> =
     std::sync::LazyLock::new(|| std::env::var("OPENAI_API_TOKEN").expect("Missing env var"));
 
+#[derive(clap::Parser)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(clap::Subcommand)]
+enum Commands {
+    Adb,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let cli = Cli::parse();
+
+    let stream = TcpStream::connect("192.168.7.238:9100")?;
+    let mut w = epson::Writer::open(epson::Model::T30II, Box::new(stream))?;
+    w.set_unicode()?;
+
+    w.speed(5)?;
+
+    match cli.command {
+        Commands::Adb => adb(w),
+    }
+}
+
+fn adb(mut w: epson::Writer) -> Result<(), Box<dyn std::error::Error>> {
     let today = chrono::offset::Local::now();
 
     let client = reqwest::blocking::Client::new();
@@ -16,12 +43,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let todo_items = adb::todoist::get_todo_items(&client, &TODOIST_API_TOKEN)?;
     println!("Fetching us history fact...");
     let us_history_fact = adb::openai::get_completion(&client, &OPENAI_API_TOKEN, &format!("Select a major US history fact that happened on today's date ({}) and write a one paragraph summary of it. Favor facts which are related to either democracy, law, science, or technology. Make your write up focus on the facts of what happened and minimize flowery language. Omit context that a smart, well-educated person, will already know. Do not include any text besides the one paragraph. Ensure it is accurate.", today.format("%B %d")))?;
-
-    let stream = TcpStream::connect("192.168.7.238:9100")?;
-    let mut w = epson::Writer::open(epson::Model::T30II, Box::new(stream))?;
-    w.set_unicode()?;
-
-    w.speed(5)?;
 
     w.justify(epson::Alignment::Center)?;
     w.underline(true)?;
