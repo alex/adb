@@ -7,10 +7,11 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.97"
-axum = "0.8.1"
+axum = { version = "0.8.1", features = ["multipart"] }
 chrono = "0.4.35"
 clap = { version = "4.5.31", features = ["derive"] }
 epson = { version = "0.1.4", features = ["tokio"] }
+image = "0.25.5"
 reqwest = { version = "0.12", features = ["rustls-tls", "blocking", "json"] }
 serde = { version = "1.0.197", features = ["derive"] }
 tokio = { version = "1.43.0", features = ["rt-multi-thread"] }
