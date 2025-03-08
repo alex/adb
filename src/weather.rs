@@ -28,22 +28,26 @@ struct ForecastPeriod {
     short_forecast: String,
 }
 
-pub fn get_weather(
-    client: &reqwest::blocking::Client,
+pub async fn get_weather(
+    client: &reqwest::Client,
     lat: f64,
     lon: f64,
 ) -> anyhow::Result<Vec<(String, String)>> {
     let point_response = client
         .get(format!("https://api.weather.gov/points/{lat},{lon}"))
         .header(reqwest::header::USER_AGENT, "adb/0.1.0")
-        .send()?
-        .json::<PointResponse>()?;
+        .send()
+        .await?
+        .json::<PointResponse>()
+        .await?;
 
     let forecast_response = client
         .get(point_response.properties.forecast)
         .header(reqwest::header::USER_AGENT, "adb/0.1.0")
-        .send()?
-        .json::<ForecastResponse>()?;
+        .send()
+        .await?
+        .json::<ForecastResponse>()
+        .await?;
 
     Ok(forecast_response
         .properties

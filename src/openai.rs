@@ -25,8 +25,8 @@ struct CompletionResponseChoiceMessage {
     content: String,
 }
 
-pub fn get_completion(
-    client: &reqwest::blocking::Client,
+pub async fn get_completion(
+    client: &reqwest::Client,
     api_token: &str,
     prompt: &str,
 ) -> anyhow::Result<String> {
@@ -40,8 +40,10 @@ pub fn get_completion(
                 content: prompt,
             }],
         })
-        .send()?
-        .json::<CompletionResponse>()?;
+        .send()
+        .await?
+        .json::<CompletionResponse>()
+        .await?;
 
     Ok(response.choices[0].message.content.clone())
 }
