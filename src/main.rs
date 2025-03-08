@@ -39,12 +39,13 @@ async fn adb(mut w: epson::AsyncWriter) -> anyhow::Result<()> {
     let today = chrono::offset::Local::now();
 
     let client = reqwest::Client::new();
-    println!("Fetching weather...");
-    let weather = adb::weather::get_weather(&client, 38.9067, -77.0279).await?;
-    println!("Fetching todo...");
-    let todo_items = adb::todoist::get_todo_items(&client, &TODOIST_API_TOKEN).await?;
-    println!("Fetching us history fact...");
-    let us_history_fact = adb::openai::get_completion(&client, &OPENAI_API_TOKEN, &format!("Select a major US history fact that happened on today's date ({}) and write a one paragraph summary of it. Favor facts which are related to either democracy, law, science, or technology. Make your write up focus on the facts of what happened and minimize flowery language. Omit context that a smart, well-educated person, will already know. Do not include any text besides the one paragraph. Ensure it is accurate.", today.format("%B %d"))).await?;
+
+    let us_history_prompt = format!("Select a major US history fact that happened on today's date ({}) and write a one paragraph summary of it. Favor facts which are related to either democracy, law, science, or technology. Make your write up focus on the facts of what happened and minimize flowery language. Omit context that a smart, well-educated person, will already know. Do not include any text besides the one paragraph. Ensure it is accurate.", today.format("%B %d"));
+    let (weather, todo_items, us_history_fact) = tokio::try_join!(
+        adb::weather::get_weather(&client, 38.9067, -77.0279),
+        adb::todoist::get_todo_items(&client, &TODOIST_API_TOKEN),
+        adb::openai::get_completion(&client, &OPENAI_API_TOKEN, &us_history_prompt)
+    )?;
 
     w.justify(epson::Alignment::Center).await?;
     w.underline(true).await?;
