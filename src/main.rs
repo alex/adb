@@ -119,7 +119,7 @@ const WIDTH: u16 = 576;
 
 async fn post_gram(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
-    axum::extract::ConnectInfo(client_ip): axum::extract::ConnectInfo<std::net::SocketAddr>,
+    headers: axum::http::header::HeaderMap,
     mut form: axum::extract::Multipart,
 ) -> Result<axum::http::StatusCode, AppError> {
     let now = chrono::offset::Local::now();
@@ -132,7 +132,7 @@ async fn post_gram(
         image_post_data = Some(field.bytes().await?);
     }
     let Some(image_post_data) = image_post_data else {
-        todo!()
+        return Ok(axum::http::StatusCode::BAD_REQUEST);
     };
     let img = image::load_from_memory_with_format(&image_post_data, image::ImageFormat::Png)?;
     let img = img.resize(
@@ -160,10 +160,20 @@ async fn post_gram(
     w.write_all(format!(" {}\n", now.format("%I:%M:%S %p")).as_bytes())
         .await?;
 
-    w.underline(true).await?;
-    w.write_all(b"Peer IP:").await?;
-    w.underline(false).await?;
-    w.write_all(format!(" {client_ip}\n").as_bytes()).await?;
+    if let Some(peer_ip) = headers.get("X-Forwarded-For") {
+        let peer_ip = peer_ip.to_str()?;
+        w.underline(true).await?;
+        w.write_all(b"Peer IP:").await?;
+        w.underline(false).await?;
+        w.write_all(format!(" {peer_ip}\n").as_bytes()).await?;
+    }
+    if let Some(user_name) = headers.get("X-Gram-User") {
+        let user_name = user_name.to_str()?;
+        w.underline(true).await?;
+        w.write_all(b"User:").await?;
+        w.underline(false).await?;
+        w.write_all(format!(" {user_name}\n").as_bytes()).await?;
+    }
 
     w.feed(2).await?;
     w.print_image(img.into()).await?;
@@ -188,11 +198,7 @@ async fn gram(w: epson::AsyncWriter) -> anyhow::Result<()> {
     let addr = "0.0.0.0:3000";
     let listener = tokio::net::TcpListener::bind(addr).await?;
     println!("Listening on {addr}");
-    axum::serve(
-        listener,
-        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
-    )
-    .await?;
+    axum::serve(listener, app).await?;
 
     Ok(())
 }
