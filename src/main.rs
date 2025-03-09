@@ -88,7 +88,7 @@ async fn adb(mut w: epson::AsyncWriter) -> anyhow::Result<()> {
     Ok(())
 }
 
-const DRAWING_HTML: &str = include_str!("../drawing.html");
+const DRAWING_HTML: &str = include_str!("drawing.html");
 
 struct AppState {
     w: tokio::sync::Mutex<epson::AsyncWriter>,
