@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use clap::Parser;
 
 static TODOIST_API_TOKEN: std::sync::LazyLock<String> =
@@ -19,23 +17,28 @@ enum Commands {
     Gram,
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let cli = Cli::parse();
-
+async fn new_epson_writer() -> anyhow::Result<epson::AsyncWriter> {
     let stream = tokio::net::TcpStream::connect("192.168.7.238:9100").await?;
     let mut w = epson::AsyncWriter::open(epson::Model::T30II, Box::new(stream)).await?;
     w.set_unicode().await?;
 
     w.speed(5).await?;
 
+    Ok(w)
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let cli = Cli::parse();
+
     match cli.command {
-        Commands::Adb => adb(w).await,
-        Commands::Gram => gram(w).await,
+        Commands::Adb => adb().await,
+        Commands::Gram => gram().await,
     }
 }
 
-async fn adb(mut w: epson::AsyncWriter) -> anyhow::Result<()> {
+async fn adb() -> anyhow::Result<()> {
+    let mut w = new_epson_writer().await?;
     let today = chrono::offset::Local::now();
 
     let client = reqwest::Client::new();
@@ -90,10 +93,6 @@ async fn adb(mut w: epson::AsyncWriter) -> anyhow::Result<()> {
 
 const DRAWING_HTML: &str = include_str!("drawing.html");
 
-struct AppState {
-    w: tokio::sync::Mutex<epson::AsyncWriter>,
-}
-
 struct AppError(anyhow::Error);
 
 impl axum::response::IntoResponse for AppError {
@@ -118,7 +117,6 @@ where
 const WIDTH: u16 = 576;
 
 async fn post_gram(
-    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     headers: axum::http::header::HeaderMap,
     mut form: axum::extract::Multipart,
 ) -> Result<axum::http::StatusCode, AppError> {
@@ -141,7 +139,7 @@ async fn post_gram(
         image::imageops::FilterType::Lanczos3,
     );
 
-    let mut w = state.w.lock().await;
+    let mut w = new_epson_writer().await?;
     w.justify(epson::Alignment::Center).await?;
     w.underline(true).await?;
     w.write_all(b"Gram\n").await?;
@@ -184,16 +182,13 @@ async fn post_gram(
     Ok(axum::http::StatusCode::CREATED)
 }
 
-async fn gram(w: epson::AsyncWriter) -> anyhow::Result<()> {
+async fn gram() -> anyhow::Result<()> {
     let app = axum::Router::new()
         .route(
             "/",
             axum::routing::get(|| async { axum::response::Html(DRAWING_HTML) }),
         )
-        .route("/gram/", axum::routing::post(post_gram))
-        .with_state(Arc::new(AppState {
-            w: tokio::sync::Mutex::new(w),
-        }));
+        .route("/gram/", axum::routing::post(post_gram));
 
     let addr = "0.0.0.0:3000";
     let listener = tokio::net::TcpListener::bind(addr).await?;
