@@ -140,14 +140,22 @@
         #submitBtn:hover {
             background-color: #2a55a5;
         }
-        #clearBtn {
+        #clearBtn, #undoBtn {
             background-color: #f2f2f2;
             color: #666;
             border: 1px solid #ddd;
         }
-        #clearBtn:hover {
+        #clearBtn:hover, #undoBtn:hover {
             background-color: #e5e5e5;
             color: #333;
+        }
+        #undoBtn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #undoBtn svg {
+            margin-right: 6px;
         }
         .message {
             margin-bottom: 20px;
@@ -213,6 +221,13 @@
         </div>
         <canvas id="drawingCanvas" width="600" height="400"></canvas>
         <div style="display: flex; gap: 10px;">
+            <button id="undoBtn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 3L4 7L8 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M4 7H12C12.5304 7 13.0391 7.21071 13.4142 7.58579C13.7893 7.96086 14 8.46957 14 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Undo
+            </button>
             <button id="clearBtn">Clear</button>
             <button id="submitBtn">Submit</button>
         </div>
@@ -228,6 +243,7 @@
             const ctx = canvas.getContext('2d', { willReadFrequently: true });
             const submitBtn = document.getElementById('submitBtn');
             const clearBtn = document.getElementById('clearBtn');
+            const undoBtn = document.getElementById('undoBtn');
             const thankYouMessage = document.getElementById('thankYouMessage');
             const errorMessage = document.getElementById('errorMessage');
             const brushSizeButtons = document.querySelectorAll('.brush-size-btn');
@@ -236,6 +252,10 @@
             const eraserBtn = document.getElementById('eraserBtn');
 
             let isDrawing = false;
+            let currentStroke = []; // Store the current stroke points
+            let undoStack = []; // Stack to store canvas states for undo functionality
+            let hasDrawnSinceLastSave = false; // Track if drawing has occurred since last save
+            let dpr = window.devicePixelRatio || 1; // Store the device pixel ratio
 
             // Setup high DPI canvas
             setupHighDPICanvas(canvas);
@@ -245,6 +265,9 @@
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.strokeStyle = 'black';
+
+            // Save initial blank canvas state
+            saveCanvasState();
 
             // Brush size controls
             brushSizeButtons.forEach(btn => {
@@ -284,7 +307,7 @@
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
-            canvas.addEventListener('mouseout', stopDrawing);
+            canvas.addEventListener('mouseout', cancelDrawing);
 
             // Touch support
             canvas.addEventListener('touchstart', handleTouch);
@@ -294,9 +317,21 @@
             // Button event listeners
             submitBtn.addEventListener('click', submitDrawing);
             clearBtn.addEventListener('click', clearCanvas);
+            undoBtn.addEventListener('click', undoLastStroke);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl+Z or Command+Z for undo
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                    e.preventDefault(); // Prevent browser's default undo
+                    undoLastStroke();
+                }
+            });
 
             function startDrawing(e) {
                 isDrawing = true;
+                hasDrawnSinceLastSave = true;
+                currentStroke = []; // Reset current stroke
 
                 // Get mouse position
                 const rect = canvas.getBoundingClientRect();
@@ -306,6 +341,9 @@
                 // Start at a crisp position
                 const roundX = Math.round(x);
                 const roundY = Math.round(y);
+
+                // Add point to current stroke
+                currentStroke.push({ x: roundX, y: roundY, tool: currentTool, size: brushSize });
 
                 ctx.beginPath();
                 ctx.moveTo(roundX, roundY);
@@ -323,6 +361,9 @@
                 const roundX = Math.round(x);
                 const roundY = Math.round(y);
 
+                // Add point to current stroke
+                currentStroke.push({ x: roundX, y: roundY, tool: currentTool, size: brushSize });
+
                 ctx.lineTo(roundX, roundY);
                 ctx.stroke();
                 ctx.beginPath();
@@ -333,6 +374,8 @@
                 e.preventDefault();
                 if (e.type === 'touchstart') {
                     isDrawing = true;
+                    hasDrawnSinceLastSave = true;
+                    currentStroke = []; // Reset current stroke
 
                     const touch = e.touches[0];
                     const rect = canvas.getBoundingClientRect();
@@ -341,6 +384,9 @@
 
                     const roundX = Math.round(x);
                     const roundY = Math.round(y);
+
+                    // Add point to current stroke
+                    currentStroke.push({ x: roundX, y: roundY, tool: currentTool, size: brushSize });
 
                     ctx.beginPath();
                     ctx.moveTo(roundX, roundY);
@@ -355,6 +401,9 @@
                     const roundX = Math.round(x);
                     const roundY = Math.round(y);
 
+                    // Add point to current stroke
+                    currentStroke.push({ x: roundX, y: roundY, tool: currentTool, size: brushSize });
+
                     ctx.lineTo(roundX, roundY);
                     ctx.stroke();
                     ctx.beginPath();
@@ -363,17 +412,62 @@
             }
 
             function stopDrawing() {
+                if (isDrawing) {
+                    isDrawing = false;
+                    ctx.beginPath();
+
+                    // Save the current stroke if it has points
+                    if (currentStroke.length > 0) {
+                        // Save canvas state to undo stack
+                        saveCanvasState();
+                    }
+                }
+            }
+
+            function cancelDrawing() {
+                // Cancel the current drawing without saving if mouse leaves canvas
                 isDrawing = false;
                 ctx.beginPath();
+                currentStroke = [];
             }
 
             function clearCanvas() {
+                // Save the current state before clearing
+                if (hasDrawnSinceLastSave) {
+                    saveCanvasState();
+                }
+
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.beginPath();
                 
                 // Reset any error or success messages
                 thankYouMessage.style.display = 'none';
                 errorMessage.style.display = 'none';
+                
+                // Save the empty canvas state
+                saveCanvasState();
+            }
+
+            function saveCanvasState() {
+                // Save the current canvas state to the undo stack
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                undoStack.push(imageData);
+                hasDrawnSinceLastSave = false;
+            }
+
+            function undoLastStroke() {
+                // If there's nothing to undo, return
+                if (undoStack.length <= 1) return;
+                
+                // Remove the current state
+                undoStack.pop();
+                
+                // Get the previous state
+                const previousState = undoStack[undoStack.length - 1];
+                
+                // Load the previous state
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.putImageData(previousState, 0, 0);
             }
 
             function submitDrawing() {
