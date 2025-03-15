@@ -48,17 +48,17 @@ async fn adb() -> anyhow::Result<()> {
     let weather_fut = async {
         adb::weather::get_weather(&client, 38.9067, -77.0279)
             .await
-            .with_context(|| "Error encountered getting weather")
+            .context("Error encountered getting weather")
     };
     let todo_fut = async {
         adb::todoist::get_todo_items(&client, &TODOIST_API_TOKEN)
             .await
-            .with_context(|| "Error encountered getting TODO items")
+            .context("Error encountered getting TODO items")
     };
     let us_history_fact_fut = async {
         adb::openai::get_completion(&client, &OPENAI_API_TOKEN, &us_history_prompt)
             .await
-            .with_context(|| "Error encountered getting US history fact")
+            .context("Error encountered getting US history fact")
     };
     let (weather, todo_items, us_history_fact) =
         tokio::try_join!(weather_fut, todo_fut, us_history_fact_fut,)?;
