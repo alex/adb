@@ -7,7 +7,7 @@ struct CompletionRequest<'a> {
 #[derive(serde::Serialize)]
 struct CompletionRequestMessage<'a> {
     role: &'static str,
-    content: MessageContent<'a>,
+    content: Vec<MessageContent<'a>>,
 }
 
 #[derive(serde::Serialize)]
@@ -50,13 +50,10 @@ pub async fn get_completion(
         .bearer_auth(api_token)
         .json(&CompletionRequest {
             model: "gpt-4o",
-            messages: message_contents
-                .into_iter()
-                .map(|content| CompletionRequestMessage {
-                    role: "user",
-                    content,
-                })
-                .collect(),
+            messages: vec![CompletionRequestMessage {
+                role: "user",
+                content: message_contents.into_iter().collect(),
+            }],
         })
         .send()
         .await?
