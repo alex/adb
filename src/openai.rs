@@ -22,7 +22,7 @@ pub enum MessageContent<'a> {
 
 #[derive(serde::Serialize)]
 pub struct ImageUrl<'a> {
-    url: &'a str,
+    pub url: &'a str,
 }
 
 #[derive(serde::Deserialize, Debug)]

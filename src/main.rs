@@ -1,4 +1,5 @@
 use anyhow::Context;
+use base64::Engine;
 use clap::Parser;
 
 static TODOIST_API_TOKEN: std::sync::LazyLock<String> =
@@ -161,6 +162,23 @@ async fn post_gram(
         image::imageops::FilterType::Lanczos3,
     );
 
+    let client = reqwest::Client::new();
+    let png_data_url = "data:image/png;base64,".to_string()
+        + &base64::prelude::BASE64_STANDARD.encode(&image_post_data);
+    let description = adb::openai::get_completion(
+        &client,
+        &OPENAI_API_TOKEN,
+        [
+            adb::openai::MessageContent::Text {
+                text: "Write a short description of what's depicted in the drawing.",
+            },
+            adb::openai::MessageContent::ImageUrl {
+                image_url: adb::openai::ImageUrl { url: &png_data_url },
+            },
+        ],
+    )
+    .await?;
+
     let mut w = new_epson_writer().await?;
     w.justify(epson::Alignment::Center).await?;
     w.underline(true).await?;
@@ -197,6 +215,12 @@ async fn post_gram(
 
     w.feed(2).await?;
     w.print_image(img.into()).await?;
+
+    w.feed(2).await?;
+    w.underline(true).await?;
+    w.write_all(b"Description:").await?;
+    w.underline(false).await?;
+    w.write_all(format!(" {description}\n").as_bytes()).await?;
 
     w.feed(5).await?;
     w.cut().await?;
