@@ -44,7 +44,10 @@ async fn adb() -> anyhow::Result<()> {
 
     let client = reqwest::Client::new();
 
-    let us_history_prompt = format!("Select a major US history fact that happened on today's date ({}) and write a one paragraph summary of it. Favor facts which are related to either democracy, law, science, or technology. Make your write up focus on the facts of what happened and minimize flowery language. Omit context that a smart, well-educated person, will already know. Do not include any text besides the one paragraph. Ensure it is accurate.", today.format("%B %d"));
+    let us_history_prompt = format!(
+        "Select a major US history fact that happened on today's date ({}) and write a one paragraph summary of it. Favor facts which are related to either democracy, law, science, or technology. Make your write up focus on the facts of what happened and minimize flowery language. Omit context that a smart, well-educated person, will already know. Do not include any text besides the one paragraph. Ensure it is accurate.",
+        today.format("%B %d")
+    );
     let weather_fut = async {
         adb::weather::get_weather(&client, 38.9067, -77.0279)
             .await
@@ -56,9 +59,15 @@ async fn adb() -> anyhow::Result<()> {
             .context("Error encountered getting TODO items")
     };
     let us_history_fact_fut = async {
-        adb::openai::get_completion(&client, &OPENAI_API_TOKEN, &us_history_prompt)
-            .await
-            .context("Error encountered getting US history fact")
+        adb::openai::get_completion(
+            &client,
+            &OPENAI_API_TOKEN,
+            [adb::openai::MessageContent::Text {
+                text: &us_history_prompt,
+            }],
+        )
+        .await
+        .context("Error encountered getting US history fact")
     };
     let (weather, todo_items, us_history_fact) =
         tokio::try_join!(weather_fut, todo_fut, us_history_fact_fut,)?;
