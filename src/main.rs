@@ -170,7 +170,7 @@ async fn post_gram(
         &OPENAI_API_TOKEN,
         [
             adb::openai::MessageContent::Text {
-                text: "Write a short description of what's depicted in the drawing.",
+                text: "Write a short description of what's depicted in the drawing. It should be at most a sentence",
             },
             adb::openai::MessageContent::ImageUrl {
                 image_url: adb::openai::ImageUrl { url: &png_data_url },
