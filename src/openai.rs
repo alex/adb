@@ -49,7 +49,7 @@ pub async fn get_completion(
         .post("https://api.openai.com/v1/chat/completions")
         .bearer_auth(api_token)
         .json(&CompletionRequest {
-            model: "gpt-4o",
+            model: "gpt-4.1",
             messages: vec![CompletionRequestMessage {
                 role: "user",
                 content: message_contents.into_iter().collect(),
