@@ -291,7 +291,7 @@
 
                     // Set current tool
                     currentTool = this.getAttribute('data-tool');
-                    
+
                     // Update stroke style based on tool
                     if (currentTool === 'pen') {
                         ctx.strokeStyle = 'black';
@@ -439,11 +439,11 @@
 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.beginPath();
-                
+
                 // Reset any error or success messages
                 thankYouMessage.style.display = 'none';
                 errorMessage.style.display = 'none';
-                
+
                 // Save the empty canvas state
                 saveCanvasState();
             }
@@ -458,19 +458,24 @@
             function undoLastStroke() {
                 // If there's nothing to undo, return
                 if (undoStack.length <= 1) return;
-                
+
                 // Remove the current state
                 undoStack.pop();
-                
+
                 // Get the previous state
                 const previousState = undoStack[undoStack.length - 1];
-                
+
                 // Load the previous state
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.putImageData(previousState, 0, 0);
             }
 
             function submitDrawing() {
+                // Disable the submit button
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+                submitBtn.style.cursor = 'not-allowed';
+
                 // Create a temporary canvas to ensure white background
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = canvas.width;
@@ -496,17 +501,22 @@
                         body: formData
                     })
                     .then(response => {
+                        // Re-enable the submit button
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.style.cursor = 'pointer';
+
                         // Hide any previously shown messages
                         thankYouMessage.style.display = 'none';
                         errorMessage.style.display = 'none';
-                        
+
                         if (response.status === 201) {
                             // Show thank you message for success
                             thankYouMessage.style.display = 'block';
-                            
+
                             // Clear canvas
                             clearCanvas();
-                            
+
                             // Hide success message after 3 seconds
                             setTimeout(() => {
                                 thankYouMessage.style.display = 'none';
@@ -514,7 +524,7 @@
                         } else {
                             // Show error message for non-201 status
                             errorMessage.style.display = 'block';
-                            
+
                             // Hide error message after 3 seconds
                             setTimeout(() => {
                                 errorMessage.style.display = 'none';
@@ -522,11 +532,16 @@
                         }
                     })
                     .catch(error => {
+                        // Re-enable the submit button
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.style.cursor = 'pointer';
+
                         console.error('Error submitting drawing:', error);
-                        
+
                         // Show error message
                         errorMessage.style.display = 'block';
-                        
+
                         // Hide error message after 3 seconds
                         setTimeout(() => {
                             errorMessage.style.display = 'none';
