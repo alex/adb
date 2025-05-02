@@ -1,3 +1,3 @@
-pub mod openai;
+pub mod anthropic;
 pub mod todoist;
 pub mod weather;

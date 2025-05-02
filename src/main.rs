@@ -4,8 +4,8 @@ use clap::Parser;
 
 static TODOIST_API_TOKEN: std::sync::LazyLock<String> =
     std::sync::LazyLock::new(|| std::env::var("TODOIST_API_TOKEN").expect("Missing env var"));
-static OPENAI_API_TOKEN: std::sync::LazyLock<String> =
-    std::sync::LazyLock::new(|| std::env::var("OPENAI_API_TOKEN").expect("Missing env var"));
+static ANTHROPIC_API_TOKEN: std::sync::LazyLock<String> =
+    std::sync::LazyLock::new(|| std::env::var("ANTHROPIC_API_TOKEN").expect("Missing env var"));
 
 #[derive(clap::Parser)]
 struct Cli {
@@ -60,10 +60,10 @@ async fn adb() -> anyhow::Result<()> {
             .context("Error encountered getting TODO items")
     };
     let us_history_fact_fut = async {
-        adb::openai::get_completion(
+        adb::anthropic::get_completion(
             &client,
-            &OPENAI_API_TOKEN,
-            [adb::openai::MessageContent::Text {
+            &ANTHROPIC_API_TOKEN,
+            [adb::anthropic::MessageContent::Text {
                 text: &us_history_prompt,
             }],
         )
@@ -163,17 +163,15 @@ async fn post_gram(
     );
 
     let client = reqwest::Client::new();
-    let png_data_url = "data:image/png;base64,".to_string()
-        + &base64::prelude::BASE64_STANDARD.encode(&image_post_data);
-    let description = adb::openai::get_completion(
+    let description = adb::anthropic::get_completion(
         &client,
-        &OPENAI_API_TOKEN,
+        &ANTHROPIC_API_TOKEN,
         [
-            adb::openai::MessageContent::Text {
+            adb::anthropic::MessageContent::Text {
                 text: "Write a short description of what's depicted in the drawing. It should be at most a sentence",
             },
-            adb::openai::MessageContent::ImageUrl {
-                image_url: adb::openai::ImageUrl { url: &png_data_url },
+            adb::anthropic::MessageContent::Image {
+                source: adb::anthropic::ImageSource::new_base64("image/png", &base64::prelude::BASE64_STANDARD.encode(&image_post_data))
             },
         ],
     )
