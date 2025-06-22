@@ -116,6 +116,7 @@ async fn adb() -> anyhow::Result<()> {
 }
 
 const DRAWING_HTML: &str = include_str!("drawing.html");
+const PHOTO_HTML: &str = include_str!("photo.html");
 
 struct AppError(anyhow::Error);
 
@@ -232,6 +233,10 @@ async fn gram() -> anyhow::Result<()> {
         .route(
             "/",
             axum::routing::get(|| async { axum::response::Html(DRAWING_HTML) }),
+        )
+        .route(
+            "/photo/",
+            axum::routing::get(|| async { axum::response::Html(PHOTO_HTML) }),
         )
         .route("/gram/", axum::routing::post(post_gram));
 

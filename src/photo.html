@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Capture App</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 1000;
+        }
+        .navbar a {
+            text-decoration: none;
+            color: #333;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .navbar a:hover {
+            background-color: #f0f0f0;
+        }
+        .navbar a.active {
+            background-color: #3366cc;
+            color: white;
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-weight: 500;
+            margin-top: 60px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        .camera-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        #video, #canvas {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 100%;
+            height: auto;
+        }
+        #canvas {
+            display: none;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            border: none;
+        }
+        #captureBtn {
+            background-color: #3366cc;
+            color: white;
+            box-shadow: 0 2px 4px rgba(51, 102, 204, 0.3);
+        }
+        #captureBtn:hover {
+            background-color: #2a55a5;
+        }
+        #retakeBtn, #submitBtn {
+            background-color: #f2f2f2;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+        #retakeBtn:hover, #submitBtn:hover {
+            background-color: #e5e5e5;
+            color: #333;
+        }
+        #submitBtn.active {
+            background-color: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+        #submitBtn.active:hover {
+            background-color: #218838;
+        }
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .success {
+            background-color: #e6f7e6;
+            color: #2e7d32;
+            display: none;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            display: none;
+        }
+        .camera-error {
+            background-color: #fff3cd;
+            color: #856404;
+            display: none;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/">Draw</a>
+        <a href="/photo/" class="active">Photo</a>
+    </nav>
+
+    <div class="container">
+        <h1>Take a Photo</h1>
+        
+        <div id="successMessage" class="message success">
+            Thank you for submitting your photo!
+        </div>
+        <div id="errorMessage" class="message error">
+            Failed to submit photo. Please try again.
+        </div>
+        <div id="cameraError" class="message camera-error">
+            Unable to access camera. Please check permissions.
+        </div>
+
+        <div class="camera-container">
+            <video id="video" width="600" height="400" autoplay></video>
+            <canvas id="canvas" width="600" height="400"></canvas>
+        </div>
+
+        <div class="controls">
+            <button id="captureBtn">Capture Photo</button>
+            <button id="retakeBtn" class="hidden">Retake</button>
+            <button id="submitBtn" class="hidden">Submit Photo</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const captureBtn = document.getElementById('captureBtn');
+            const retakeBtn = document.getElementById('retakeBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const cameraError = document.getElementById('cameraError');
+
+            let stream = null;
+            let photoTaken = false;
+
+            // Initialize camera
+            async function initCamera() {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            width: { ideal: 600 },
+                            height: { ideal: 400 }
+                        } 
+                    });
+                    video.srcObject = stream;
+                } catch (err) {
+                    console.error('Error accessing camera:', err);
+                    cameraError.style.display = 'block';
+                }
+            }
+
+            // Capture photo
+            function capturePhoto() {
+                // Draw the video frame to canvas
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Hide video, show canvas
+                video.style.display = 'none';
+                canvas.style.display = 'block';
+                
+                // Update button states
+                captureBtn.classList.add('hidden');
+                retakeBtn.classList.remove('hidden');
+                submitBtn.classList.remove('hidden');
+                submitBtn.classList.add('active');
+                
+                photoTaken = true;
+            }
+
+            // Retake photo
+            function retakePhoto() {
+                // Show video, hide canvas
+                video.style.display = 'block';
+                canvas.style.display = 'none';
+                
+                // Update button states
+                captureBtn.classList.remove('hidden');
+                retakeBtn.classList.add('hidden');
+                submitBtn.classList.add('hidden');
+                submitBtn.classList.remove('active');
+                
+                // Clear any messages
+                successMessage.style.display = 'none';
+                errorMessage.style.display = 'none';
+                
+                photoTaken = false;
+            }
+
+            // Submit photo
+            function submitPhoto() {
+                if (!photoTaken) return;
+
+                // Disable submit button
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+                submitBtn.style.cursor = 'not-allowed';
+
+                // Convert canvas to blob
+                canvas.toBlob(function(blob) {
+                    // Create form data
+                    const formData = new FormData();
+                    formData.append('image', blob, 'photo.png');
+
+                    // Submit photo
+                    fetch('/gram/', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        // Re-enable submit button
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.style.cursor = 'pointer';
+
+                        // Hide any previous messages
+                        successMessage.style.display = 'none';
+                        errorMessage.style.display = 'none';
+
+                        if (response.status === 201) {
+                            // Show success message
+                            successMessage.style.display = 'block';
+                            
+                            // Reset to camera view
+                            retakePhoto();
+
+                            // Hide success message after 3 seconds
+                            setTimeout(() => {
+                                successMessage.style.display = 'none';
+                            }, 3000);
+                        } else {
+                            // Show error message
+                            errorMessage.style.display = 'block';
+                            
+                            // Hide error message after 3 seconds
+                            setTimeout(() => {
+                                errorMessage.style.display = 'none';
+                            }, 3000);
+                        }
+                    })
+                    .catch(error => {
+                        // Re-enable submit button
+                        submitBtn.disabled = false;
+                        submitBtn.style.opacity = '1';
+                        submitBtn.style.cursor = 'pointer';
+
+                        console.error('Error submitting photo:', error);
+                        
+                        // Show error message
+                        errorMessage.style.display = 'block';
+                        
+                        // Hide error message after 3 seconds
+                        setTimeout(() => {
+                            errorMessage.style.display = 'none';
+                        }, 3000);
+                    });
+                }, 'image/png');
+            }
+
+            // Event listeners
+            captureBtn.addEventListener('click', capturePhoto);
+            retakeBtn.addEventListener('click', retakePhoto);
+            submitBtn.addEventListener('click', submitPhoto);
+
+            // Initialize camera on page load
+            initCamera();
+
+            // Clean up camera stream when page unloads
+            window.addEventListener('beforeunload', function() {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -20,6 +20,36 @@
         h1 {
             margin-bottom: 20px;
             font-weight: 500;
+            margin-top: 60px;
+        }
+        
+
+                .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 1000;
+        }
+        .navbar a {
+            text-decoration: none;
+            color: #333;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .navbar a:hover {
+            background-color: #f0f0f0;
+        }
+        .navbar a.active {
+            background-color: #3366cc;
+            color: white;
         }
         .container {
             display: flex;
@@ -178,6 +208,12 @@
     </style>
 </head>
 <body>
+    <nav class="navbar">
+        <a href="/" class="active">Draw</a>
+        <a href="/photo/">Photo</a>
+    </nav>
+
+    
     <div class="container">
         <h1>Draw Something</h1>
         <div id="thankYouMessage" class="message success">
