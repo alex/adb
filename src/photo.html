@@ -258,7 +258,7 @@
                         formData.append("image", blob, "photo.png");
 
                         // Submit photo
-                        fetch("/gram/", {
+                        fetch("/gram/?description=false", {
                             method: "POST",
                             body: formData,
                         })

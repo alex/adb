@@ -141,8 +141,14 @@ where
 
 const WIDTH: u16 = 576;
 
+#[derive(serde::Deserialize)]
+struct PostGramOptions {
+    description: Option<bool>,
+}
+
 async fn post_gram(
     headers: axum::http::header::HeaderMap,
+    axum::extract::Query(opts): axum::extract::Query<PostGramOptions>,
     mut form: axum::extract::Multipart,
 ) -> Result<axum::http::StatusCode, AppError> {
     let now = chrono::offset::Local::now();
@@ -164,20 +170,24 @@ async fn post_gram(
         image::imageops::FilterType::Lanczos3,
     );
 
-    let client = reqwest::Client::new();
-    let description = adb::anthropic::get_completion(
-        &client,
-        &ANTHROPIC_API_TOKEN,
-        [
-            adb::anthropic::MessageContent::Text {
-                text: "Write a short description of what's depicted in the drawing. It should be at most a sentence",
-            },
-            adb::anthropic::MessageContent::Image {
-                source: adb::anthropic::ImageSource::new_base64("image/png", &base64::prelude::BASE64_STANDARD.encode(&image_post_data))
-            },
-        ],
-    )
-    .await?;
+    let description = if opts.description.is_some_and(|v| v) {
+        let client = reqwest::Client::new();
+        Some(adb::anthropic::get_completion(
+            &client,
+            &ANTHROPIC_API_TOKEN,
+            [
+                adb::anthropic::MessageContent::Text {
+                    text: "Write a short description of what's depicted in the drawing. It should be at most a sentence",
+                },
+                adb::anthropic::MessageContent::Image {
+                    source: adb::anthropic::ImageSource::new_base64("image/png", &base64::prelude::BASE64_STANDARD.encode(&image_post_data))
+                },
+            ],
+        )
+        .await?)
+    } else {
+        None
+    };
 
     let mut w = new_epson_writer().await?;
     w.justify(epson::Alignment::Center).await?;
@@ -216,11 +226,13 @@ async fn post_gram(
     w.feed(2).await?;
     w.print_image(img.into()).await?;
 
-    w.feed(2).await?;
-    w.underline(true).await?;
-    w.write_all(b"Description:").await?;
-    w.underline(false).await?;
-    w.write_all(format!(" {description}\n").as_bytes()).await?;
+    if let Some(description) = description {
+        w.feed(2).await?;
+        w.underline(true).await?;
+        w.write_all(b"Description:").await?;
+        w.underline(false).await?;
+        w.write_all(format!(" {description}\n").as_bytes()).await?;
+    }
 
     w.feed(5).await?;
     w.cut().await?;
