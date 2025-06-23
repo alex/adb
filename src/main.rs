@@ -170,7 +170,7 @@ async fn post_gram(
         image::imageops::FilterType::Lanczos3,
     );
 
-    let description = if opts.description.is_some_and(|v| v) {
+    let description = if opts.description.is_none_or(|v| v) {
         let client = reqwest::Client::new();
         Some(adb::anthropic::get_completion(
             &client,
