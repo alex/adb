@@ -169,6 +169,8 @@ async fn post_gram(
         4096 * 512,
         image::imageops::FilterType::Lanczos3,
     );
+    let mut img = img.into();
+    image::imageops::colorops::dither(&mut img, &image::imageops::colorops::BiLevel);
 
     let description = if matches!(opts.description, None | Some(true)) {
         let client = reqwest::Client::new();
@@ -224,7 +226,7 @@ async fn post_gram(
     }
 
     w.feed(2).await?;
-    w.print_image(img.into()).await?;
+    w.print_image(img).await?;
 
     if let Some(description) = description {
         w.feed(2).await?;
