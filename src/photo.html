@@ -188,8 +188,8 @@
             </div>
 
             <div class="camera-container">
-                <video id="video" width="600" height="400" autoplay></video>
-                <canvas id="canvas" width="600" height="400"></canvas>
+                <video id="video" autoplay></video>
+                <canvas id="canvas"></canvas>
                 <div id="countdownOverlay" class="countdown-overlay">3</div>
                 <button id="cameraSwitchBtn" class="camera-switch">
                     <svg viewBox="0 0 24 24">
@@ -225,6 +225,43 @@
                 let countdownTimer = null;
                 let isCapturing = false;
 
+                // Adjust video and canvas dimensions based on camera stream
+                function adjustVideoDimensions() {
+                    const videoWidth = video.videoWidth;
+                    const videoHeight = video.videoHeight;
+
+                    // Calculate aspect ratio
+                    const aspectRatio = videoWidth / videoHeight;
+
+                    // Set maximum width to 576px (target width for thermal printer)
+                    const maxWidth = 576;
+                    const containerWidth = Math.min(maxWidth, window.innerWidth - 40);
+
+                    let displayWidth, displayHeight;
+
+                    if (aspectRatio > 1) {
+                        // Landscape: width-constrained
+                        displayWidth = containerWidth;
+                        displayHeight = containerWidth / aspectRatio;
+                    } else {
+                        // Portrait: height-constrained to maintain aspect ratio
+                        displayWidth = containerWidth;
+                        displayHeight = containerWidth / aspectRatio;
+                    }
+
+                    // Set video display dimensions
+                    video.style.width = displayWidth + 'px';
+                    video.style.height = displayHeight + 'px';
+
+                    // Set canvas to match video's actual resolution for quality
+                    canvas.width = videoWidth;
+                    canvas.height = videoHeight;
+
+                    // Set canvas display dimensions to match video
+                    canvas.style.width = displayWidth + 'px';
+                    canvas.style.height = displayHeight + 'px';
+                }
+
                 // Get available cameras
                 async function getCameras() {
                     try {
@@ -253,8 +290,8 @@
 
                         const constraints = {
                             video: {
-                                width: { ideal: 600 },
-                                height: { ideal: 400 },
+                                width: { ideal: 1920 },
+                                height: { ideal: 1080 },
                                 facingMode: facingMode
                             }
                         };
@@ -262,6 +299,11 @@
                         stream = await navigator.mediaDevices.getUserMedia(constraints);
                         video.srcObject = stream;
                         currentFacingMode = facingMode;
+
+                        // Wait for video to load and adjust dimensions
+                        video.addEventListener('loadedmetadata', () => {
+                            adjustVideoDimensions();
+                        });
                     } catch (err) {
                         console.error("Error accessing camera:", err);
                         cameraError.style.display = "block";
@@ -301,8 +343,8 @@
 
                 // Capture photo and auto-submit
                 function captureAndSubmitPhoto() {
-                    // Draw the video frame to canvas
-                    ctx.drawImage(video, 0, 0);
+                    // Draw the video frame to canvas at full resolution
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
                     // Hide video, show canvas (frozen photo)
                     video.style.display = "none";
@@ -400,6 +442,15 @@
 
                 // Initialize camera on page load
                 getCameras().then(() => initCamera());
+
+                // Handle orientation changes
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => {
+                        if (video.videoWidth && video.videoHeight) {
+                            adjustVideoDimensions();
+                        }
+                    }, 100);
+                });
 
                 // Clean up camera stream and timers when page unloads
                 window.addEventListener("beforeunload", function () {
