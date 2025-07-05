@@ -62,6 +62,33 @@
                 position: relative;
                 margin-bottom: 20px;
             }
+            .camera-switch {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background-color: rgba(0, 0, 0, 0.5);
+                border: none;
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: background-color 0.2s;
+                z-index: 10;
+            }
+            .camera-switch:hover {
+                background-color: rgba(0, 0, 0, 0.7);
+            }
+            .camera-switch svg {
+                width: 24px;
+                height: 24px;
+                fill: white;
+            }
+            .camera-switch.hidden {
+                display: none !important;
+            }
             #video,
             #canvas {
                 background-color: white;
@@ -77,6 +104,7 @@
                 display: flex;
                 gap: 10px;
                 margin-bottom: 20px;
+                justify-content: center;
             }
             button {
                 padding: 10px 20px;
@@ -164,7 +192,13 @@
             <div class="camera-container">
                 <video id="video" width="600" height="400" autoplay></video>
                 <canvas id="canvas" width="600" height="400"></canvas>
-            </div>
+                <button id="cameraSwitchBtn" class="camera-switch">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 7L17 12H14V16H10V12H7L12 7M12 17L7 12H10V8H14V12H17L12 17Z"/>
+                    </svg>
+                </button>
+
+
 
             <div class="controls">
                 <button id="captureBtn">Capture Photo</button>
@@ -185,24 +219,60 @@
                     document.getElementById("successMessage");
                 const errorMessage = document.getElementById("errorMessage");
                 const cameraError = document.getElementById("cameraError");
+                const cameraSwitchBtn = document.getElementById("cameraSwitchBtn");
 
                 let stream = null;
                 let photoTaken = false;
+                let currentFacingMode = 'environment'; // 'user' for front, 'environment' for back
+                let cameras = [];
+
+                // Get available cameras
+                async function getCameras() {
+                    try {
+                        const devices = await navigator.mediaDevices.enumerateDevices();
+                        cameras = devices.filter(device => device.kind === 'videoinput');
+
+                        // Show camera switch button only if multiple cameras are available
+                        if (cameras.length > 1) {
+                            cameraSwitchBtn.classList.remove('hidden');
+                        } else {
+                            cameraSwitchBtn.classList.add('hidden');
+                        }
+                    } catch (err) {
+                        console.error("Error getting cameras:", err);
+                        cameraSwitchBtn.classList.add('hidden');
+                    }
+                }
 
                 // Initialize camera
-                async function initCamera() {
+                async function initCamera(facingMode = currentFacingMode) {
                     try {
-                        stream = await navigator.mediaDevices.getUserMedia({
+                        // Stop existing stream if any
+                        if (stream) {
+                            stream.getTracks().forEach(track => track.stop());
+                        }
+
+                        const constraints = {
                             video: {
                                 width: { ideal: 600 },
                                 height: { ideal: 400 },
-                            },
-                        });
+                                facingMode: facingMode
+                            }
+                        };
+
+                        stream = await navigator.mediaDevices.getUserMedia(constraints);
                         video.srcObject = stream;
+                        currentFacingMode = facingMode;
                     } catch (err) {
                         console.error("Error accessing camera:", err);
                         cameraError.style.display = "block";
                     }
+                }
+
+                // Switch camera
+                async function switchCamera() {
+                    const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+                    await initCamera(newFacingMode);
                 }
 
                 // Capture photo
@@ -220,6 +290,9 @@
                     submitBtn.classList.remove("hidden");
                     submitBtn.classList.add("active");
 
+                    // Hide camera switch button when photo is taken
+                    cameraSwitchBtn.classList.add('hidden');
+
                     photoTaken = true;
                 }
 
@@ -234,6 +307,11 @@
                     retakeBtn.classList.add("hidden");
                     submitBtn.classList.add("hidden");
                     submitBtn.classList.remove("active");
+
+                    // Show camera switch button if multiple cameras
+                    if (cameras.length > 1) {
+                        cameraSwitchBtn.classList.remove('hidden');
+                    }
 
                     // Clear any messages
                     successMessage.style.display = "none";
@@ -316,9 +394,10 @@
                 captureBtn.addEventListener("click", capturePhoto);
                 retakeBtn.addEventListener("click", retakePhoto);
                 submitBtn.addEventListener("click", submitPhoto);
+                cameraSwitchBtn.addEventListener("click", switchCamera);
 
                 // Initialize camera on page load
-                initCamera();
+                getCameras().then(() => initCamera());
 
                 // Clean up camera stream when page unloads
                 window.addEventListener("beforeunload", function () {
