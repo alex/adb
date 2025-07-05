@@ -123,25 +123,6 @@
             #captureBtn:hover {
                 background-color: #2a55a5;
             }
-            #retakeBtn,
-            #submitBtn {
-                background-color: #f2f2f2;
-                color: #666;
-                border: 1px solid #ddd;
-            }
-            #retakeBtn:hover,
-            #submitBtn:hover {
-                background-color: #e5e5e5;
-                color: #333;
-            }
-            #submitBtn.active {
-                background-color: #28a745;
-                color: white;
-                border-color: #28a745;
-            }
-            #submitBtn.active:hover {
-                background-color: #218838;
-            }
             .message {
                 margin-bottom: 20px;
                 padding: 15px;
@@ -168,6 +149,23 @@
             .hidden {
                 display: none !important;
             }
+            .countdown-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 120px;
+                font-weight: bold;
+                color: white;
+                z-index: 20;
+                border-radius: 8px;
+                display: none;
+            }
         </style>
     </head>
     <body>
@@ -192,6 +190,7 @@
             <div class="camera-container">
                 <video id="video" width="600" height="400" autoplay></video>
                 <canvas id="canvas" width="600" height="400"></canvas>
+                <div id="countdownOverlay" class="countdown-overlay">3</div>
                 <button id="cameraSwitchBtn" class="camera-switch">
                     <svg viewBox="0 0 24 24">
                         <path d="M16 4l4 4-4 4v-2c-3.31 0-6 2.69-6 6s2.69 6 6 6v2c-4.42 0-8-3.58-8-8s3.58-8 8-8V4z"/>
@@ -203,8 +202,6 @@
 
             <div class="controls">
                 <button id="captureBtn">Capture Photo</button>
-                <button id="retakeBtn" class="hidden">Retake</button>
-                <button id="submitBtn" class="hidden">Submit Photo</button>
             </div>
         </div>
 
@@ -214,18 +211,19 @@
                 const canvas = document.getElementById("canvas");
                 const ctx = canvas.getContext("2d");
                 const captureBtn = document.getElementById("captureBtn");
-                const retakeBtn = document.getElementById("retakeBtn");
-                const submitBtn = document.getElementById("submitBtn");
                 const successMessage =
                     document.getElementById("successMessage");
                 const errorMessage = document.getElementById("errorMessage");
                 const cameraError = document.getElementById("cameraError");
                 const cameraSwitchBtn = document.getElementById("cameraSwitchBtn");
+                const countdownOverlay = document.getElementById("countdownOverlay");
 
                 let stream = null;
                 let photoTaken = false;
                 let currentFacingMode = 'environment'; // 'user' for front, 'environment' for back
                 let cameras = [];
+                let countdownTimer = null;
+                let isCapturing = false;
 
                 // Get available cameras
                 async function getCameras() {
@@ -276,38 +274,55 @@
                     await initCamera(newFacingMode);
                 }
 
-                // Capture photo
-                function capturePhoto() {
+                // Start countdown and capture photo
+                function startCountdownCapture() {
+                    if (isCapturing) return;
+
+                    isCapturing = true;
+                    captureBtn.disabled = true;
+                    captureBtn.style.opacity = "0.5";
+                    cameraSwitchBtn.classList.add('hidden');
+
+                    let countdown = 3;
+                    countdownOverlay.textContent = countdown;
+                    countdownOverlay.style.display = "flex";
+
+                    countdownTimer = setInterval(() => {
+                        countdown--;
+                        if (countdown > 0) {
+                            countdownOverlay.textContent = countdown;
+                        } else {
+                            clearInterval(countdownTimer);
+                            countdownOverlay.style.display = "none";
+                            captureAndSubmitPhoto();
+                        }
+                    }, 1000);
+                }
+
+                // Capture photo and auto-submit
+                function captureAndSubmitPhoto() {
                     // Draw the video frame to canvas
                     ctx.drawImage(video, 0, 0);
 
-                    // Hide video, show canvas
+                    // Hide video, show canvas (frozen photo)
                     video.style.display = "none";
                     canvas.style.display = "block";
 
-                    // Update button states
-                    captureBtn.classList.add("hidden");
-                    retakeBtn.classList.remove("hidden");
-                    submitBtn.classList.remove("hidden");
-                    submitBtn.classList.add("active");
-
-                    // Hide camera switch button when photo is taken
-                    cameraSwitchBtn.classList.add('hidden');
-
                     photoTaken = true;
+
+                    // Auto-submit the photo
+                    submitPhoto();
                 }
 
-                // Retake photo
-                function retakePhoto() {
+                // Return to camera view
+                function returnToCameraView() {
                     // Show video, hide canvas
                     video.style.display = "block";
                     canvas.style.display = "none";
 
-                    // Update button states
-                    captureBtn.classList.remove("hidden");
-                    retakeBtn.classList.add("hidden");
-                    submitBtn.classList.add("hidden");
-                    submitBtn.classList.remove("active");
+                    // Reset button states
+                    captureBtn.disabled = false;
+                    captureBtn.style.opacity = "1";
 
                     // Show camera switch button if multiple cameras
                     if (cameras.length > 1) {
@@ -319,16 +334,12 @@
                     errorMessage.style.display = "none";
 
                     photoTaken = false;
+                    isCapturing = false;
                 }
 
                 // Submit photo
                 function submitPhoto() {
                     if (!photoTaken) return;
-
-                    // Disable submit button
-                    submitBtn.disabled = true;
-                    submitBtn.style.opacity = "0.5";
-                    submitBtn.style.cursor = "not-allowed";
 
                     // Convert canvas to blob
                     canvas.toBlob(function (blob) {
@@ -342,11 +353,6 @@
                             body: formData,
                         })
                             .then((response) => {
-                                // Re-enable submit button
-                                submitBtn.disabled = false;
-                                submitBtn.style.opacity = "1";
-                                submitBtn.style.cursor = "pointer";
-
                                 // Hide any previous messages
                                 successMessage.style.display = "none";
                                 errorMessage.style.display = "none";
@@ -355,8 +361,8 @@
                                     // Show success message
                                     successMessage.style.display = "block";
 
-                                    // Reset to camera view
-                                    retakePhoto();
+                                    // Return to camera view
+                                    returnToCameraView();
 
                                     // Hide success message after 3 seconds
                                     setTimeout(() => {
@@ -366,25 +372,22 @@
                                     // Show error message
                                     errorMessage.style.display = "block";
 
-                                    // Hide error message after 3 seconds
+                                    // Return to camera view after showing error
                                     setTimeout(() => {
+                                        returnToCameraView();
                                         errorMessage.style.display = "none";
                                     }, 3000);
                                 }
                             })
                             .catch((error) => {
-                                // Re-enable submit button
-                                submitBtn.disabled = false;
-                                submitBtn.style.opacity = "1";
-                                submitBtn.style.cursor = "pointer";
-
                                 console.error("Error submitting photo:", error);
 
                                 // Show error message
                                 errorMessage.style.display = "block";
 
-                                // Hide error message after 3 seconds
+                                // Return to camera view after showing error
                                 setTimeout(() => {
+                                    returnToCameraView();
                                     errorMessage.style.display = "none";
                                 }, 3000);
                             });
@@ -392,18 +395,19 @@
                 }
 
                 // Event listeners
-                captureBtn.addEventListener("click", capturePhoto);
-                retakeBtn.addEventListener("click", retakePhoto);
-                submitBtn.addEventListener("click", submitPhoto);
+                captureBtn.addEventListener("click", startCountdownCapture);
                 cameraSwitchBtn.addEventListener("click", switchCamera);
 
                 // Initialize camera on page load
                 getCameras().then(() => initCamera());
 
-                // Clean up camera stream when page unloads
+                // Clean up camera stream and timers when page unloads
                 window.addEventListener("beforeunload", function () {
                     if (stream) {
                         stream.getTracks().forEach((track) => track.stop());
+                    }
+                    if (countdownTimer) {
+                        clearInterval(countdownTimer);
                     }
                 });
             });
