@@ -255,7 +255,8 @@ async fn gram() -> anyhow::Result<()> {
             "/photo/",
             axum::routing::get(|| async { axum::response::Html(PHOTO_HTML) }),
         )
-        .route("/gram/", axum::routing::post(post_gram));
+        .route("/gram/", axum::routing::post(post_gram))
+        .layer(axum::extract::DefaultBodyLimit::max(50 * 1024 * 1024));
 
     let addr = "0.0.0.0:3000";
     let listener = tokio::net::TcpListener::bind(addr).await?;
