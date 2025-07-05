@@ -32,6 +32,8 @@ async fn new_epson_writer() -> anyhow::Result<epson::Writer<impl tokio::io::Asyn
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt().init();
+
     let cli = Cli::parse();
 
     match cli.command {
@@ -122,6 +124,7 @@ struct AppError(anyhow::Error);
 
 impl axum::response::IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {
+        tracing::error!("Request failed: {:#}", self.0);
         (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             format!("Something went wrong! {0}", self.0),
