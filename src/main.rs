@@ -167,6 +167,13 @@ async fn post_gram(
         return Ok(axum::http::StatusCode::BAD_REQUEST);
     };
     let img = image::load_from_memory_with_format(&image_post_data, image::ImageFormat::Png)?;
+
+    let img = if img.width() > img.height() {
+        img.rotate90()
+    } else {
+        img
+    };
+
     let img = img.resize(
         WIDTH.into(),
         4096 * 512,
