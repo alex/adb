@@ -147,6 +147,7 @@ const WIDTH: u16 = 576;
 #[derive(serde::Deserialize)]
 struct PostGramOptions {
     description: Option<bool>,
+    rotate_if_landscape: Option<bool>,
 }
 
 async fn post_gram(
@@ -168,7 +169,7 @@ async fn post_gram(
     };
     let img = image::load_from_memory_with_format(&image_post_data, image::ImageFormat::Png)?;
 
-    let img = if img.width() > img.height() {
+    let img = if img.width() > img.height() && opts.rotate_if_landscape.unwrap_or(false) {
         img.rotate90()
     } else {
         img

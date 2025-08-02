@@ -390,7 +390,7 @@
                         formData.append("image", blob, "photo.png");
 
                         // Submit photo
-                        fetch("/gram/?description=false", {
+                        fetch("/gram/?description=false&rotate_if_landscape=true", {
                             method: "POST",
                             body: formData,
                         })
