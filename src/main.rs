@@ -2,6 +2,7 @@ use anyhow::Context;
 use base64::Engine;
 use clap::Parser;
 use epson::AsyncWriterExt;
+use image::buffer::ConvertBuffer;
 
 static TODOIST_API_TOKEN: std::sync::LazyLock<String> =
     std::sync::LazyLock::new(|| std::env::var("TODOIST_API_TOKEN").expect("Missing env var"));
@@ -180,7 +181,8 @@ async fn post_gram(
         4096 * 512,
         image::imageops::FilterType::Lanczos3,
     );
-    let mut img = img.into();
+    let img = image::imageops::colorops::brighten(&img, 64);
+    let mut img: image::GrayImage = img.convert();
     image::imageops::colorops::dither(&mut img, &image::imageops::colorops::BiLevel);
 
     let description = if matches!(opts.description, None | Some(true)) {
