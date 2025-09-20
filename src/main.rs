@@ -31,6 +31,22 @@ async fn new_epson_writer() -> anyhow::Result<epson::Writer<impl tokio::io::Asyn
     Ok(w)
 }
 
+async fn print_gram_startup_message() -> anyhow::Result<()> {
+    let mut w = new_epson_writer().await?;
+    let now = chrono::offset::Local::now();
+
+    w.justify(epson::Alignment::Center).await?;
+    w.underline(true).await?;
+    w.write_all(b"Gram Server Started\n").await?;
+    w.underline(false).await?;
+    w.write_all(format!("{}\n", now.format("%A %B %d, %Y at %I:%M:%S %p")).as_bytes())
+        .await?;
+    w.feed(3).await?;
+    w.cut().await?;
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt().init();
@@ -256,6 +272,8 @@ async fn post_gram(
 }
 
 async fn gram() -> anyhow::Result<()> {
+    print_gram_startup_message().await?;
+
     let app = axum::Router::new()
         .route(
             "/",
