@@ -80,7 +80,7 @@ async fn check_if_substantive(
     Ok(response.trim().to_uppercase().contains("YES"))
 }
 
-async fn print_docket_alert(entry: &DocketEntry) -> anyhow::Result<()> {
+async fn print_docket_alerts(entries: &[DocketEntry]) -> anyhow::Result<()> {
     let mut w = crate::printer::new_epson_writer().await?;
     let now = chrono::offset::Local::now();
 
@@ -88,7 +88,9 @@ async fn print_docket_alert(entry: &DocketEntry) -> anyhow::Result<()> {
     w.underline(true).await?;
     w.write_all(b"COURT ALERT\n").await?;
     w.underline(false).await?;
-    w.write_all(b"Substantive Filing Detected\n").await?;
+
+    let filing_word = if entries.len() == 1 { "Filing" } else { "Filings" };
+    w.write_all(format!("{} Substantive {} Detected\n", entries.len(), filing_word).as_bytes()).await?;
     w.feed(1).await?;
     w.justify(epson::Alignment::Left).await?;
 
@@ -96,46 +98,56 @@ async fn print_docket_alert(entry: &DocketEntry) -> anyhow::Result<()> {
         format!("Alert Time: {}\n", now.format("%B %d, %Y at %I:%M:%S %p")).as_bytes(),
     )
     .await?;
-    w.feed(1).await?;
 
-    if let Some(entry_num) = entry.entry_number {
-        w.underline(true).await?;
-        w.write_all(b"Entry Number:").await?;
-        w.underline(false).await?;
-        w.write_all(format!(" {}\n", entry_num).as_bytes())
-            .await?;
-    }
+    // Print each entry
+    for (i, entry) in entries.iter().enumerate() {
+        if i > 0 {
+            w.feed(2).await?;
+            w.write_all(b"---\n").await?;
+            w.feed(1).await?;
+        } else {
+            w.feed(1).await?;
+        }
 
-    if let Some(date_filed) = &entry.date_filed {
-        w.underline(true).await?;
-        w.write_all(b"Date Filed:").await?;
-        w.underline(false).await?;
-        w.write_all(format!(" {}\n", date_filed).as_bytes())
-            .await?;
-    }
+        if let Some(entry_num) = entry.entry_number {
+            w.underline(true).await?;
+            w.write_all(b"Entry Number:").await?;
+            w.underline(false).await?;
+            w.write_all(format!(" {}\n", entry_num).as_bytes())
+                .await?;
+        }
 
-    if let Some(description) = &entry.description {
-        w.feed(1).await?;
-        w.underline(true).await?;
-        w.write_all(b"Description:\n").await?;
-        w.underline(false).await?;
-        w.write_all(format!("{}\n", description).as_bytes())
-            .await?;
-    }
+        if let Some(date_filed) = &entry.date_filed {
+            w.underline(true).await?;
+            w.write_all(b"Date Filed:").await?;
+            w.underline(false).await?;
+            w.write_all(format!(" {}\n", date_filed).as_bytes())
+                .await?;
+        }
 
-    // Print document descriptions if available
-    if let Some(docs) = &entry.recap_documents {
-        if !docs.is_empty() {
+        if let Some(description) = &entry.description {
             w.feed(1).await?;
             w.underline(true).await?;
-            w.write_all(b"Documents:\n").await?;
+            w.write_all(b"Description:\n").await?;
             w.underline(false).await?;
+            w.write_all(format!("{}\n", description).as_bytes())
+                .await?;
+        }
 
-            for doc in docs {
-                if let Some(doc_desc) = &doc.description {
-                    let doc_num = doc.document_number.as_deref().unwrap_or("?");
-                    w.write_all(format!("- Doc {}: {}\n", doc_num, doc_desc).as_bytes())
-                        .await?;
+        // Print document descriptions if available
+        if let Some(docs) = &entry.recap_documents {
+            if !docs.is_empty() {
+                w.feed(1).await?;
+                w.underline(true).await?;
+                w.write_all(b"Documents:\n").await?;
+                w.underline(false).await?;
+
+                for doc in docs {
+                    if let Some(doc_desc) = &doc.description {
+                        let doc_num = doc.document_number.as_deref().unwrap_or("?");
+                        w.write_all(format!("- Doc {}: {}\n", doc_num, doc_desc).as_bytes())
+                            .await?;
+                    }
                 }
             }
         }
@@ -152,12 +164,20 @@ pub async fn handle_webhook(
     api_token: &str,
     webhook: CourtListenerWebhook,
 ) -> anyhow::Result<()> {
+    // Check all entries and collect substantive ones
+    let mut substantive_entries = Vec::new();
+
     for entry in &webhook.payload.results {
         if check_if_substantive(client, api_token, entry).await? {
-            print_docket_alert(entry)
-                .await
-                .context("Failed to print docket alert")?;
+            substantive_entries.push(entry.clone());
         }
+    }
+
+    // Only print if there are substantive entries
+    if !substantive_entries.is_empty() {
+        print_docket_alerts(&substantive_entries)
+            .await
+            .context("Failed to print docket alerts")?;
     }
 
     Ok(())
