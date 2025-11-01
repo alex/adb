@@ -80,7 +80,7 @@ async fn check_if_substantive(
     Ok(response.trim().to_uppercase().contains("YES"))
 }
 
-async fn print_docket_alerts(entries: &[DocketEntry]) -> anyhow::Result<()> {
+async fn print_docket_alerts(entries: &[&DocketEntry]) -> anyhow::Result<()> {
     let mut w = crate::printer::new_epson_writer().await?;
     let now = chrono::offset::Local::now();
 
@@ -169,7 +169,7 @@ pub async fn handle_webhook(
 
     for entry in &webhook.payload.results {
         if check_if_substantive(client, api_token, entry).await? {
-            substantive_entries.push(entry.clone());
+            substantive_entries.push(entry);
         }
     }
 
