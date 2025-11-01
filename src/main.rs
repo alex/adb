@@ -288,7 +288,10 @@ async fn gram() -> anyhow::Result<()> {
     // Only register the CourtListener webhook route if the secret is configured
     if let Some(secret) = COURTLISTENER_WEBHOOK_SECRET.as_ref() {
         let webhook_path = format!("/courtlistener/webhook/{}/", secret);
-        app = app.route(&webhook_path, axum::routing::post(post_courtlistener_webhook));
+        app = app.route(
+            &webhook_path,
+            axum::routing::post(post_courtlistener_webhook),
+        );
     }
 
     let app = app.layer(axum::extract::DefaultBodyLimit::max(50 * 1024 * 1024));

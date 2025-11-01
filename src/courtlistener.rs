@@ -4,29 +4,26 @@ use epson::AsyncWriterExt;
 // CourtListener webhook structures
 #[derive(serde::Deserialize, Debug)]
 pub struct CourtListenerWebhook {
-    pub webhook: serde_json::Value,
-    pub payload: WebhookPayload,
+    payload: WebhookPayload,
 }
 
 #[derive(serde::Deserialize, Debug)]
 pub struct WebhookPayload {
-    pub results: Vec<DocketEntry>,
+    results: Vec<DocketEntry>,
 }
 
 #[derive(serde::Deserialize, Debug, Clone)]
 pub struct DocketEntry {
-    pub description: Option<String>,
-    pub entry_number: Option<i32>,
-    pub date_filed: Option<String>,
-    pub docket: Option<serde_json::Value>,
-    pub recap_documents: Option<Vec<RecapDocument>>,
+    description: Option<String>,
+    entry_number: Option<i32>,
+    date_filed: Option<String>,
+    recap_documents: Option<Vec<RecapDocument>>,
 }
 
 #[derive(serde::Deserialize, Debug, Clone)]
 pub struct RecapDocument {
-    pub description: Option<String>,
-    pub document_number: Option<String>,
-    pub attachment_number: Option<i32>,
+    description: Option<String>,
+    document_number: Option<String>,
 }
 
 async fn check_if_substantive(
@@ -89,15 +86,18 @@ async fn print_docket_alerts(entries: &[&DocketEntry]) -> anyhow::Result<()> {
     w.write_all(b"COURT ALERT\n").await?;
     w.underline(false).await?;
 
-    let filing_word = if entries.len() == 1 { "Filing" } else { "Filings" };
-    w.write_all(format!("{} Substantive {} Detected\n", entries.len(), filing_word).as_bytes()).await?;
+    let filing_word = if entries.len() == 1 {
+        "Filing"
+    } else {
+        "Filings"
+    };
+    w.write_all(format!("{} Substantive {} Detected\n", entries.len(), filing_word).as_bytes())
+        .await?;
     w.feed(1).await?;
     w.justify(epson::Alignment::Left).await?;
 
-    w.write_all(
-        format!("Alert Time: {}\n", now.format("%B %d, %Y at %I:%M:%S %p")).as_bytes(),
-    )
-    .await?;
+    w.write_all(format!("Alert Time: {}\n", now.format("%B %d, %Y at %I:%M:%S %p")).as_bytes())
+        .await?;
 
     // Print each entry
     for (i, entry) in entries.iter().enumerate() {
@@ -113,16 +113,14 @@ async fn print_docket_alerts(entries: &[&DocketEntry]) -> anyhow::Result<()> {
             w.underline(true).await?;
             w.write_all(b"Entry Number:").await?;
             w.underline(false).await?;
-            w.write_all(format!(" {}\n", entry_num).as_bytes())
-                .await?;
+            w.write_all(format!(" {}\n", entry_num).as_bytes()).await?;
         }
 
         if let Some(date_filed) = &entry.date_filed {
             w.underline(true).await?;
             w.write_all(b"Date Filed:").await?;
             w.underline(false).await?;
-            w.write_all(format!(" {}\n", date_filed).as_bytes())
-                .await?;
+            w.write_all(format!(" {}\n", date_filed).as_bytes()).await?;
         }
 
         if let Some(description) = &entry.description {
@@ -130,8 +128,7 @@ async fn print_docket_alerts(entries: &[&DocketEntry]) -> anyhow::Result<()> {
             w.underline(true).await?;
             w.write_all(b"Description:\n").await?;
             w.underline(false).await?;
-            w.write_all(format!("{}\n", description).as_bytes())
-                .await?;
+            w.write_all(format!("{}\n", description).as_bytes()).await?;
         }
 
         // Print document descriptions if available
