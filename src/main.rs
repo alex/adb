@@ -8,6 +8,8 @@ static TODOIST_API_TOKEN: std::sync::LazyLock<String> =
     std::sync::LazyLock::new(|| std::env::var("TODOIST_API_TOKEN").expect("Missing env var"));
 static ANTHROPIC_API_TOKEN: std::sync::LazyLock<String> =
     std::sync::LazyLock::new(|| std::env::var("ANTHROPIC_API_TOKEN").expect("Missing env var"));
+static COURTLISTENER_WEBHOOK_SECRET: std::sync::LazyLock<Option<String>> =
+    std::sync::LazyLock::new(|| std::env::var("COURTLISTENER_WEBHOOK_SECRET").ok());
 
 #[derive(clap::Parser)]
 struct Cli {
@@ -21,18 +23,8 @@ enum Commands {
     Gram,
 }
 
-async fn new_epson_writer() -> anyhow::Result<epson::Writer<impl tokio::io::AsyncWrite>> {
-    let stream = tokio::net::TcpStream::connect("192.168.7.238:9100").await?;
-    let mut w = epson::Writer::open(epson::Model::T30II, stream).await?;
-    w.set_unicode().await?;
-
-    w.speed(5).await?;
-
-    Ok(w)
-}
-
 async fn print_gram_startup_message() -> anyhow::Result<()> {
-    let mut w = new_epson_writer().await?;
+    let mut w = adb::printer::new_epson_writer().await?;
     let now = chrono::offset::Local::now();
 
     w.justify(epson::Alignment::Center).await?;
@@ -60,7 +52,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn adb() -> anyhow::Result<()> {
-    let mut w = new_epson_writer().await?;
+    let mut w = adb::printer::new_epson_writer().await?;
     let today = chrono::offset::Local::now();
 
     let client = reqwest::Client::new();
@@ -220,7 +212,7 @@ async fn post_gram(
         None
     };
 
-    let mut w = new_epson_writer().await?;
+    let mut w = adb::printer::new_epson_writer().await?;
     w.justify(epson::Alignment::Center).await?;
     w.underline(true).await?;
     w.write_all(b"Gram\n").await?;
@@ -271,10 +263,18 @@ async fn post_gram(
     Ok(axum::http::StatusCode::CREATED)
 }
 
+async fn post_courtlistener_webhook(
+    axum::Json(webhook): axum::Json<adb::courtlistener::CourtListenerWebhook>,
+) -> Result<axum::http::StatusCode, AppError> {
+    let client = reqwest::Client::new();
+    adb::courtlistener::handle_webhook(&client, &ANTHROPIC_API_TOKEN, webhook).await?;
+    Ok(axum::http::StatusCode::OK)
+}
+
 async fn gram() -> anyhow::Result<()> {
     print_gram_startup_message().await?;
 
-    let app = axum::Router::new()
+    let mut app = axum::Router::new()
         .route(
             "/",
             axum::routing::get(|| async { axum::response::Html(DRAWING_HTML) }),
@@ -283,8 +283,18 @@ async fn gram() -> anyhow::Result<()> {
             "/photo/",
             axum::routing::get(|| async { axum::response::Html(PHOTO_HTML) }),
         )
-        .route("/gram/", axum::routing::post(post_gram))
-        .layer(axum::extract::DefaultBodyLimit::max(50 * 1024 * 1024));
+        .route("/gram/", axum::routing::post(post_gram));
+
+    // Only register the CourtListener webhook route if the secret is configured
+    if let Some(secret) = COURTLISTENER_WEBHOOK_SECRET.as_ref() {
+        let webhook_path = format!("/courtlistener/webhook/{}/", secret);
+        app = app.route(
+            &webhook_path,
+            axum::routing::post(post_courtlistener_webhook),
+        );
+    }
+
+    let app = app.layer(axum::extract::DefaultBodyLimit::max(50 * 1024 * 1024));
 
     let addr = "0.0.0.0:3000";
     let listener = tokio::net::TcpListener::bind(addr).await?;
