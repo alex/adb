@@ -29,14 +29,6 @@ pub struct RecapDocument {
     pub attachment_number: Option<i32>,
 }
 
-async fn new_epson_writer() -> anyhow::Result<epson::Writer<impl tokio::io::AsyncWrite>> {
-    let stream = tokio::net::TcpStream::connect("192.168.7.238:9100").await?;
-    let mut w = epson::Writer::open(epson::Model::T30II, stream).await?;
-    w.set_unicode().await?;
-    w.speed(5).await?;
-    Ok(w)
-}
-
 async fn check_if_substantive(
     client: &reqwest::Client,
     api_token: &str,
@@ -89,7 +81,7 @@ async fn check_if_substantive(
 }
 
 async fn print_docket_alert(entry: &DocketEntry) -> anyhow::Result<()> {
-    let mut w = new_epson_writer().await?;
+    let mut w = crate::printer::new_epson_writer().await?;
     let now = chrono::offset::Local::now();
 
     w.justify(epson::Alignment::Center).await?;
