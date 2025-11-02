@@ -60,7 +60,9 @@ async fn check_if_substantive(
         A substantive filing is one that materially affects the case, such as: motions, \
         orders, opinions, judgments, briefs, complaints, answers, or other significant \
         legal documents. Non-substantive filings include: notices of appearance, \
-        administrative orders, scheduling updates, certificate of service, etc.\n\n\
+        administrative orders, scheduling updates, certificate of service, \
+        motions and orders regarding pro hac vice, and motions and orders \
+        regarding leave to file amicus curiae brief, etc.\n\n\
         Analyze this filing and respond with ONLY 'YES' if it is substantive or 'NO' if it is not.\n\n\
         {}",
         entry_description
