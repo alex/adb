@@ -1,4 +1,3 @@
-use anyhow::Context;
 use epson::AsyncWriterExt;
 
 // CourtListener webhook structures
@@ -79,7 +78,7 @@ async fn check_if_substantive(
     Ok(response.trim().to_uppercase().contains("YES"))
 }
 
-async fn print_docket_alerts(entries: &[&DocketEntry]) -> anyhow::Result<()> {
+async fn print_docket_alerts(entries: &[DocketEntry]) -> anyhow::Result<()> {
     let mut w = crate::printer::new_epson_writer().await?;
     let now = chrono::offset::Local::now();
 
@@ -160,24 +159,30 @@ async fn print_docket_alerts(entries: &[&DocketEntry]) -> anyhow::Result<()> {
 
 pub async fn handle_webhook(
     client: &reqwest::Client,
-    api_token: &str,
+    api_token: &'static str,
     webhook: CourtListenerWebhook,
 ) -> anyhow::Result<()> {
-    // Check all entries and collect substantive ones
-    let mut substantive_entries = Vec::new();
+    let client = client.clone();
+    // courtlistener has a 2 second timeout and talking to an LLM + printing on
+    // a printer can take longer than that, so we spawn a background task.
+    tokio::spawn(async move {
+        // Check all entries and collect substantive ones
+        let mut substantive_entries = Vec::new();
 
-    for entry in &webhook.payload.results {
-        if check_if_substantive(client, api_token, entry).await? {
-            substantive_entries.push(entry);
+        for entry in webhook.payload.results {
+            if check_if_substantive(&client, api_token, &entry)
+                .await
+                .unwrap()
+            {
+                substantive_entries.push(entry);
+            }
         }
-    }
 
-    // Only print if there are substantive entries
-    if !substantive_entries.is_empty() {
-        print_docket_alerts(&substantive_entries)
-            .await
-            .context("Failed to print docket alerts")?;
-    }
+        // Only print if there are substantive entries
+        if !substantive_entries.is_empty() {
+            print_docket_alerts(&substantive_entries).await.unwrap();
+        }
+    });
 
     Ok(())
 }
