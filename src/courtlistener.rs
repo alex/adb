@@ -134,7 +134,14 @@ async fn print_docket_alerts(entries: &[DocketEntry]) -> anyhow::Result<()> {
 
         // Print document descriptions if available
         if let Some(docs) = &entry.recap_documents {
-            if !docs.is_empty() {
+            if !docs.is_empty()
+                && docs
+                    .iter()
+                    .filter_map(|doc| doc.description.as_ref())
+                    .filter(|desc| !desc.trim().is_empty())
+                    .count()
+                    > 0
+            {
                 w.feed(1).await?;
                 w.underline(true).await?;
                 w.write_all(b"Documents:\n").await?;
@@ -142,6 +149,9 @@ async fn print_docket_alerts(entries: &[DocketEntry]) -> anyhow::Result<()> {
 
                 for doc in docs {
                     if let Some(doc_desc) = &doc.description {
+                        if doc_desc.trim().is_empty() {
+                            continue;
+                        }
                         let doc_num = doc.document_number.as_deref().unwrap_or("?");
                         w.write_all(format!("- Doc {}: {}\n", doc_num, doc_desc).as_bytes())
                             .await?;
