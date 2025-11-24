@@ -58,7 +58,7 @@ pub async fn get_completion(
         .header("x-api-key", api_token)
         .header("anthropic-version", "2023-06-01")
         .json(&CompletionRequest {
-            model: "claude-sonnet-4-5-20250929",
+            model: "claude-opus-4-5-20251101",
             messages: vec![CompletionRequestMessage {
                 role: "user",
                 content: message_contents.into_iter().collect(),
