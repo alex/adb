@@ -11,7 +11,7 @@ chrono = "0.4.35"
 clap = { version = "4.5.31", features = ["derive"] }
 epson = { version = "0.2", features = ["tokio"] }
 image = "0.25.5"
-reqwest = { version = "0.13", features = ["json", "charset", "http2"], default-features = false }
+reqwest = { version = "0.13", features = ["json", "charset", "http2", "rustls"], default-features = false }
 serde = { version = "1.0.197", features = ["derive"] }
 tokio = { version = "1.43.0", features = ["rt-multi-thread"] }
 tracing = "0.1.41"
