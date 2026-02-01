@@ -3,6 +3,14 @@ struct CompletionRequest<'a> {
     model: &'static str,
     messages: Vec<CompletionRequestMessage<'a>>,
     max_tokens: usize,
+    thinking: Thinking,
+}
+
+#[derive(serde::Serialize)]
+struct Thinking {
+    #[serde(rename = "type")]
+    type_: &'static str,
+    budget_tokens: usize,
 }
 
 #[derive(serde::Serialize)]
@@ -44,8 +52,12 @@ struct CompletionResponse {
 }
 
 #[derive(serde::Deserialize, Debug)]
-struct ResponseContent {
-    text: String,
+#[serde(tag = "type")]
+enum ResponseContent {
+    #[serde(rename = "thinking")]
+    Thinking { thinking: String },
+    #[serde(rename = "text")]
+    Text { text: String },
 }
 
 pub async fn get_completion(
@@ -63,12 +75,23 @@ pub async fn get_completion(
                 role: "user",
                 content: message_contents.into_iter().collect(),
             }],
-            max_tokens: 4096,
+            max_tokens: 16000,
+            thinking: Thinking {
+                type_: "enabled",
+                budget_tokens: 10000,
+            },
         })
         .send()
         .await?
         .json::<CompletionResponse>()
         .await?;
 
-    Ok(response.content[0].text.clone())
+    Ok(response
+        .content
+        .into_iter()
+        .find_map(|c| match c {
+            ResponseContent::Text { text } => Some(text),
+            _ => None,
+        })
+        .expect("No text content in response"))
 }
