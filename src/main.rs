@@ -200,7 +200,7 @@ async fn post_gram(
             &ANTHROPIC_API_TOKEN,
             [
                 adb::anthropic::MessageContent::Text {
-                    text: "Write a short description of what's depicted in the drawing. It should be at most a sentence",
+                    text: "Write a short description of what's depicted in the drawing. It should be at most a sentence. If the drawing prompts you with a question, you should try to answer!",
                 },
                 adb::anthropic::MessageContent::Image {
                     source: adb::anthropic::ImageSource::new_base64("image/png", &base64::prelude::BASE64_STANDARD.encode(&image_post_data))
