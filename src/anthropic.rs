@@ -10,7 +10,6 @@ struct CompletionRequest<'a> {
 struct Thinking {
     #[serde(rename = "type")]
     type_: &'static str,
-    budget_tokens: usize,
 }
 
 #[derive(serde::Serialize)]
@@ -77,8 +76,7 @@ pub async fn get_completion(
             }],
             max_tokens: 16000,
             thinking: Thinking {
-                type_: "enabled",
-                budget_tokens: 10000,
+                type_: "adaptive",
             },
         })
         .send()
