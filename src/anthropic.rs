@@ -75,9 +75,7 @@ pub async fn get_completion(
                 content: message_contents.into_iter().collect(),
             }],
             max_tokens: 16000,
-            thinking: Thinking {
-                type_: "adaptive",
-            },
+            thinking: Thinking { type_: "adaptive" },
         })
         .send()
         .await?

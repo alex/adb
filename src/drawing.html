@@ -3,766 +3,1528 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Canvas Drawing App</title>
+        <title>Gram · Receipt Lab</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:opsz,ital,wght@9..144,0,400..900;9..144,1,400..900&display=swap"
+            rel="stylesheet"
+        />
         <style>
+            :root {
+                --paper: #f6f1e7;
+                --paper-deep: #ebe4d3;
+                --canvas-paper: #fffdf6;
+                --ink: #1a1714;
+                --ink-soft: #544c43;
+                --ink-faint: #a89c8a;
+                --rule: #d8cfb9;
+                --accent: #c0392f;
+                --serif: "Fraunces", "Times New Roman", serif;
+                --mono: "JetBrains Mono", ui-monospace, monospace;
+            }
             * {
                 box-sizing: border-box;
             }
+            html,
             body {
-                font-family:
-                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
-                    sans-serif;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                min-height: 100vh;
                 margin: 0;
-                padding: 20px;
-                background: linear-gradient(135deg, #fef9f0 0%, #f0e6ff 50%, #e6f0ff 100%);
-                color: #2d2d3a;
+                padding: 0;
+                height: 100%;
             }
-            h1 {
-                margin-bottom: 20px;
-                font-weight: 700;
-                margin-top: 70px;
-                font-size: 28px;
-                background: linear-gradient(135deg, #6b4ce6, #e6527a);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-                letter-spacing: -0.5px;
+            body {
+                background-color: var(--paper);
+                background-image: radial-gradient(
+                    var(--rule) 1px,
+                    transparent 1px
+                );
+                background-size: 14px 14px;
+                color: var(--ink);
+                font-family: var(--mono);
+                font-size: 12px;
+                overflow: hidden;
+            }
+            button,
+            input {
+                font-family: inherit;
             }
 
-            .navbar {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                background: rgba(255, 255, 255, 0.85);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                box-shadow: 0 1px 12px rgba(0, 0, 0, 0.08);
-                padding: 12px 20px;
+            .app {
+                position: relative;
+                height: 100%;
                 display: flex;
+                flex-direction: column;
+            }
+
+            /* ─── Header ─────────────────────────────── */
+            .topbar {
+                flex: 0 0 auto;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                padding: 18px 28px;
+                background: var(--paper);
+                border-bottom: 1px solid var(--rule);
+                z-index: 4;
+            }
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                min-width: 0;
+                flex: 1 1 auto;
+            }
+            .logo {
+                width: 28px;
+                height: 28px;
+                border-radius: 6px;
+                background: var(--ink);
+                color: var(--paper);
+                font-family: var(--serif);
+                font-weight: 700;
+                font-style: italic;
+                font-size: 17px;
+                line-height: 1;
+                padding-bottom: 2px;
+                display: flex;
+                align-items: center;
                 justify-content: center;
-                gap: 8px;
-                z-index: 1000;
+                flex: 0 0 auto;
             }
-            .navbar a {
-                text-decoration: none;
-                color: #555;
-                padding: 8px 20px;
-                border-radius: 50px;
-                transition: all 0.25s ease;
+            .brand-text {
+                font-family: var(--serif);
+                font-weight: 600;
+                font-size: 20px;
+                letter-spacing: -0.01em;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .brand-sub {
+                color: var(--ink-faint);
+                font-style: italic;
+                font-weight: 400;
+            }
+            .topbar-right {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex: 0 0 auto;
+            }
+            .stamp-pill {
+                border: 1px solid var(--ink);
+                padding: 3px 8px;
+                border-radius: 4px;
+                color: var(--ink);
                 font-weight: 500;
-                font-size: 15px;
+                font-size: 10px;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+                white-space: nowrap;
             }
-            .navbar a:hover {
-                background-color: rgba(107, 76, 230, 0.08);
-                color: #6b4ce6;
+            .mode-nav {
+                display: flex;
+                align-items: center;
+                gap: 2px;
+                padding: 3px;
+                background: var(--paper-deep);
+                border: 1px solid var(--rule);
+                border-radius: 999px;
             }
-            .navbar a.active {
-                background: linear-gradient(135deg, #6b4ce6, #8b5cf6);
-                color: white;
-                box-shadow: 0 2px 8px rgba(107, 76, 230, 0.35);
+            .mode-btn {
+                padding: 7px 18px;
+                background: transparent;
+                color: var(--ink-soft);
+                border: none;
+                border-radius: 999px;
+                cursor: pointer;
+                font-family: var(--mono);
+                font-size: 11px;
+                letter-spacing: 0.16em;
+                text-transform: uppercase;
+                font-weight: 500;
+                text-decoration: none;
+                transition: all 0.12s;
             }
-            .container {
+            .mode-btn.active {
+                background: var(--ink);
+                color: var(--paper);
+                font-weight: 600;
+            }
+
+            /* ─── Layout ─────────────────────────────── */
+            .layout {
+                flex: 1 1 auto;
+                display: flex;
+                align-items: stretch;
+                min-height: 0;
+            }
+
+            /* ─── Tools rail ─────────────────────────── */
+            .tools-rail {
+                width: 84px;
+                flex: 0 0 auto;
+                padding: 18px 0;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                max-width: 800px;
-                width: 100%;
+                gap: 10px;
+                border-right: 1px solid var(--rule);
             }
-            .tools {
-                display: flex;
-                justify-content: center;
-                margin-bottom: 15px;
-                width: 100%;
-            }
-            .brush-size-controls {
-                display: flex;
-                align-items: center;
-                background: rgba(255, 255, 255, 0.8);
-                backdrop-filter: blur(8px);
-                padding: 8px 12px;
-                border-radius: 16px;
-                box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-                border: 1px solid rgba(255, 255, 255, 0.6);
-                margin-right: 10px;
-            }
-            .brush-options {
-                display: flex;
-                gap: 8px;
-            }
-            .brush-size-btn {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                padding: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background-color: #f0eef5;
-                border: 2px solid transparent;
-                cursor: pointer;
-                transition: all 0.25s ease;
-            }
-            .brush-size-btn:hover {
-                background-color: #e8e4f0;
-                transform: scale(1.08);
-            }
-            .brush-size-btn.active {
-                border-color: #6b4ce6;
-                background-color: #f0ecff;
-                box-shadow: 0 0 0 3px rgba(107, 76, 230, 0.15);
-            }
-            .brush-preview {
-                background-color: #2d2d3a;
-                border-radius: 50%;
-            }
-            .brush-preview.thin {
-                width: 2px;
-                height: 2px;
-            }
-            .brush-preview.medium {
-                width: 6px;
-                height: 6px;
-            }
-            .brush-preview.thick {
-                width: 12px;
-                height: 12px;
-            }
-            .tool-controls {
-                display: flex;
-                align-items: center;
-                background: rgba(255, 255, 255, 0.8);
-                backdrop-filter: blur(8px);
-                padding: 8px 12px;
-                border-radius: 16px;
-                box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-                border: 1px solid rgba(255, 255, 255, 0.6);
+            .rail-label {
+                font-size: 9px;
+                letter-spacing: 0.2em;
+                color: var(--ink-faint);
+                text-transform: uppercase;
+                margin-bottom: 2px;
             }
             .tool-btn {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
+                flex: 0 0 auto;
+                width: 46px;
+                height: 46px;
                 padding: 0;
+                background: transparent;
+                color: var(--ink);
+                border: 1px solid var(--rule);
+                border-radius: 6px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background-color: #f0eef5;
-                border: 2px solid transparent;
                 cursor: pointer;
-                transition: all 0.25s ease;
-                margin: 0 4px;
+                transition: all 0.12s;
             }
             .tool-btn:hover {
-                background-color: #e8e4f0;
-                transform: scale(1.08);
+                background: var(--paper-deep);
             }
             .tool-btn.active {
-                border-color: #6b4ce6;
-                background-color: #f0ecff;
-                box-shadow: 0 0 0 3px rgba(107, 76, 230, 0.15);
+                background: var(--ink);
+                color: var(--paper);
+                border-color: var(--ink);
             }
-            .tool-icon {
-                width: 24px;
-                height: 24px;
+            .tool-btn svg {
+                width: 18px;
+                height: 18px;
             }
-            canvas {
-                background-color: white;
-                border-radius: 16px;
-                box-shadow:
-                    0 8px 32px rgba(107, 76, 230, 0.1),
-                    0 2px 8px rgba(0, 0, 0, 0.05);
-                margin-bottom: 20px;
-                cursor: crosshair;
-                border: 1px solid rgba(107, 76, 230, 0.08);
+            .rail-spacer {
+                flex: 1;
             }
-            button {
-                padding: 10px 20px;
-                border-radius: 12px;
-                font-size: 16px;
+            .size-pip {
+                flex: 0 0 auto;
+                width: 36px;
+                height: 28px;
+                padding: 0;
+                background: transparent;
+                border: 1px solid var(--rule);
+                border-radius: 5px;
                 cursor: pointer;
-                transition: all 0.25s ease;
-                font-weight: 600;
-                border: none;
-            }
-            #submitBtn {
-                background: linear-gradient(135deg, #6b4ce6, #8b5cf6);
-                color: white;
-                box-shadow: 0 4px 14px rgba(107, 76, 230, 0.35);
-            }
-            #submitBtn:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 6px 20px rgba(107, 76, 230, 0.45);
-            }
-            #clearBtn,
-            #undoBtn {
-                background: rgba(255, 255, 255, 0.8);
-                color: #666;
-                border: 1px solid rgba(0, 0, 0, 0.08);
-                backdrop-filter: blur(8px);
-            }
-            #clearBtn:hover,
-            #undoBtn:hover {
-                background: rgba(255, 255, 255, 0.95);
-                color: #333;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            }
-            #undoBtn {
                 display: flex;
                 align-items: center;
                 justify-content: center;
             }
-            #undoBtn svg {
-                margin-right: 6px;
+            .size-pip:hover {
+                background: var(--paper-deep);
             }
-            .message {
-                margin-bottom: 20px;
-                padding: 15px;
-                border-radius: 12px;
-                width: 100%;
-                text-align: center;
-                box-sizing: border-box;
+            .size-pip.active {
+                background: var(--ink);
+                border-color: var(--ink);
+            }
+            .size-pip > span {
+                display: block;
+                border-radius: 999px;
+                background: var(--ink);
+            }
+            .size-pip.active > span {
+                background: var(--paper);
+            }
+
+            /* ─── Canvas column ──────────────────────── */
+            .canvas-col {
+                flex: 1 1 auto;
+                display: flex;
+                padding: 18px 28px 24px;
+                gap: 22px;
+                min-width: 0;
+            }
+            .canvas-stack {
+                flex: 1 1 auto;
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                position: relative;
+            }
+            .paper-sheet {
+                flex: 1;
+                position: relative;
+                background: var(--canvas-paper);
+                box-shadow:
+                    0 1px 0 rgba(0, 0, 0, 0.04),
+                    0 16px 28px -16px rgba(40, 30, 20, 0.18);
+                border: 1px solid var(--rule);
+                border-radius: 2px;
+                overflow: hidden;
+                min-height: 0;
+            }
+            .paper-rules {
+                position: absolute;
+                inset: 0;
+                background-image: repeating-linear-gradient(
+                    to bottom,
+                    transparent 0,
+                    transparent 27px,
+                    rgba(216, 207, 185, 0.33) 27px,
+                    rgba(216, 207, 185, 0.33) 28px
+                );
+                pointer-events: none;
+            }
+            .paper-margin {
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 24px;
+                border-right: 1px dashed var(--rule);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding-top: 14px;
+                gap: 30px;
+                pointer-events: none;
+            }
+            .paper-margin span {
+                width: 5px;
+                height: 5px;
+                border-radius: 999px;
+                background: var(--paper);
+                border: 1px solid var(--rule);
+                flex: 0 0 auto;
+            }
+            #canvas {
+                position: absolute;
+                inset: 0 0 0 24px;
+                width: calc(100% - 24px);
+                height: 100%;
+                cursor: crosshair;
+                touch-action: none;
+            }
+            #canvas.tool-text {
+                cursor: text;
+            }
+            #textInput {
+                position: absolute;
+                background: transparent;
+                border: none;
+                border-bottom: 1.5px dashed var(--accent);
+                color: var(--ink);
+                font-family: var(--mono);
+                line-height: 1;
+                padding: 0;
+                min-width: 60px;
+                outline: none;
+                z-index: 5;
+            }
+
+            .canvas-footer {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-top: 12px;
+                font-size: 10px;
+                letter-spacing: 0.16em;
+                text-transform: uppercase;
+                color: var(--ink-soft);
+                gap: 12px;
+            }
+            .footer-left {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+            }
+            .footer-mid {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                white-space: nowrap;
+            }
+            .footer-mid .sep {
+                opacity: 0.4;
+            }
+            .footer-mid .em {
+                color: var(--ink);
+            }
+            .text-btn {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 12px;
+                background: transparent;
+                border: 1px solid var(--rule);
+                border-radius: 6px;
+                color: var(--ink);
+                font-family: var(--mono);
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                cursor: pointer;
+            }
+            .text-btn:hover {
+                background: var(--paper-deep);
+            }
+            .text-btn:disabled {
+                color: var(--ink-faint);
+                cursor: not-allowed;
+            }
+            .text-btn:disabled:hover {
+                background: transparent;
+            }
+            .text-btn svg {
+                width: 14px;
+                height: 14px;
+            }
+            .submit-btn {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 18px;
+                background: var(--ink);
+                color: var(--paper);
+                border: 1px solid var(--ink);
+                border-radius: 6px;
+                font-family: var(--mono);
+                font-size: 11px;
+                letter-spacing: 0.18em;
+                text-transform: uppercase;
+                cursor: pointer;
                 font-weight: 500;
             }
-            .success {
-                background: linear-gradient(135deg, #e6f7e6, #d4f5d4);
-                color: #1a6b1e;
-                display: none;
-                border: 1px solid rgba(46, 125, 50, 0.15);
+            .submit-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
             }
-            .error {
-                background: linear-gradient(135deg, #ffebee, #ffd6da);
-                color: #b71c1c;
+            .submit-btn svg {
+                width: 14px;
+                height: 14px;
+            }
+
+            /* ─── Marginalia ─────────────────────────── */
+            .marginalia {
+                width: 200px;
+                flex: 0 0 auto;
+                border-left: 1px solid var(--rule);
+                padding-left: 18px;
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+                color: var(--ink-soft);
+                font-size: 11px;
+                line-height: 1.55;
+            }
+            .quote {
+                font-family: var(--serif);
+                font-style: italic;
+                font-size: 15px;
+                color: var(--ink);
+                line-height: 1.3;
+            }
+            .quote-hl {
+                background: rgba(192, 57, 47, 0.13);
+                padding: 0 2px;
+            }
+            .quote-author {
+                margin-top: 6px;
+                font-family: var(--mono);
+                font-size: 10px;
+                letter-spacing: 0.1em;
+                color: var(--ink-soft);
+                font-style: normal;
+            }
+            .shortcuts {
+                border-top: 1px dashed var(--rule);
+                padding-top: 14px;
+            }
+            .micro-label {
+                font-size: 9px;
+                letter-spacing: 0.22em;
+                color: var(--ink-faint);
+                text-transform: uppercase;
+                margin-bottom: 6px;
+            }
+            .shortcut-grid {
+                display: grid;
+                grid-template-columns: auto 1fr;
+                gap: 4px 10px;
+                align-items: center;
+            }
+            kbd {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 20px;
+                height: 18px;
+                padding: 0 5px;
+                border: 1px solid var(--rule);
+                border-bottom-width: 2px;
+                border-radius: 3px;
+                font-family: var(--mono);
+                font-size: 10px;
+                color: var(--ink);
+                background: var(--paper);
+            }
+
+            /* ─── Toast messages ─────────────────────── */
+            .toast {
+                position: absolute;
+                bottom: 16px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 10px 16px;
+                border-radius: 6px;
+                font-family: var(--mono);
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                z-index: 30;
                 display: none;
-                border: 1px solid rgba(198, 40, 40, 0.15);
+            }
+            .toast.error {
+                background: rgba(192, 57, 47, 0.92);
+                color: var(--paper);
+            }
+
+            /* ─── Print overlay ──────────────────────── */
+            .print-overlay {
+                position: absolute;
+                inset: 0;
+                background: rgba(20, 16, 12, 0.55);
+                backdrop-filter: blur(2px);
+                -webkit-backdrop-filter: blur(2px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 50;
+                padding: 20px;
+                animation: gram-fade 0.25s ease-out;
+            }
+            @keyframes gram-fade {
+                from {
+                    opacity: 0;
+                }
+                to {
+                    opacity: 1;
+                }
+            }
+            @keyframes gram-paper-out {
+                from {
+                    transform: translateY(-100%);
+                }
+                to {
+                    transform: translateY(0);
+                }
+            }
+            @keyframes gram-printer-shake {
+                0%,
+                100% {
+                    transform: translateY(0);
+                }
+                50% {
+                    transform: translateY(-1px);
+                }
+            }
+            @keyframes gram-blink {
+                from {
+                    opacity: 0.3;
+                }
+                to {
+                    opacity: 1;
+                }
+            }
+            .printer-stack {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                font-family: var(--mono);
+                color: var(--ink);
+                max-width: 100%;
+            }
+            .printer-body {
+                width: 280px;
+                height: 64px;
+                background: #2a2622;
+                border-radius: 10px 10px 4px 4px;
+                position: relative;
+                box-shadow:
+                    0 10px 30px -10px rgba(0, 0, 0, 0.6),
+                    inset 0 -10px 0 rgba(0, 0, 0, 0.25);
+            }
+            .print-overlay.printing .printer-body {
+                animation: gram-printer-shake 0.12s linear infinite;
+            }
+            .printer-slot {
+                position: absolute;
+                top: 14px;
+                left: 18px;
+                right: 18px;
+                height: 8px;
+                background: #171513;
+                border-radius: 2px;
+            }
+            .printer-led {
+                position: absolute;
+                top: 14px;
+                right: 24px;
+                width: 6px;
+                height: 6px;
+                border-radius: 999px;
+                background: #69b06a;
+            }
+            .print-overlay.printing .printer-led {
+                background: #e8c34a;
+            }
+            .printer-base {
+                position: absolute;
+                bottom: -2px;
+                left: 14px;
+                right: 14px;
+                height: 6px;
+                background: #0a0908;
+                border-radius: 1px;
+                box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.6);
+            }
+            .receipt-paper {
+                width: 240px;
+                background: var(--canvas-paper);
+                padding: 12px 16px 18px;
+                margin-top: -2px;
+                box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.4);
+                animation: gram-paper-out 1.6s cubic-bezier(0.4, 0, 0.2, 1)
+                    forwards;
+                clip-path: polygon(
+                    0 0,
+                    100% 0,
+                    100% calc(100% - 6px),
+                    96% 100%,
+                    92% calc(100% - 6px),
+                    88% 100%,
+                    84% calc(100% - 6px),
+                    80% 100%,
+                    76% calc(100% - 6px),
+                    72% 100%,
+                    68% calc(100% - 6px),
+                    64% 100%,
+                    60% calc(100% - 6px),
+                    56% 100%,
+                    52% calc(100% - 6px),
+                    48% 100%,
+                    44% calc(100% - 6px),
+                    40% 100%,
+                    36% calc(100% - 6px),
+                    32% 100%,
+                    28% calc(100% - 6px),
+                    24% 100%,
+                    20% calc(100% - 6px),
+                    16% 100%,
+                    12% calc(100% - 6px),
+                    8% 100%,
+                    4% calc(100% - 6px),
+                    0 100%
+                );
+            }
+            .receipt-header {
+                text-align: center;
+                border-bottom: 1px dashed var(--rule);
+                padding-bottom: 8px;
+                margin-bottom: 10px;
+            }
+            .receipt-header .receipt-title {
+                font-family: var(--serif);
+                font-weight: 700;
+                font-style: italic;
+                font-size: 18px;
+                letter-spacing: -0.01em;
+            }
+            .receipt-header .receipt-sub {
+                font-size: 9px;
+                letter-spacing: 0.22em;
+                text-transform: uppercase;
+                color: var(--ink-soft);
+                margin-top: 2px;
+            }
+            .receipt-meta {
+                display: flex;
+                justify-content: space-between;
+                font-size: 9px;
+                color: var(--ink-soft);
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                margin-bottom: 8px;
+            }
+            #receiptImg {
+                width: 100%;
+                display: block;
+                filter: grayscale(1) contrast(1.4);
+            }
+            .receipt-foot {
+                border-top: 1px dashed var(--rule);
+                margin-top: 10px;
+                padding-top: 8px;
+                font-size: 10px;
+                letter-spacing: 0.1em;
+                text-align: center;
+                color: var(--ink-soft);
+            }
+            .new-sheet-btn {
+                margin-top: 22px;
+                padding: 12px 20px;
+                background: var(--paper);
+                color: var(--ink);
+                border: 1px solid var(--paper);
+                border-radius: 6px;
+                font-family: var(--mono);
+                font-size: 11px;
+                letter-spacing: 0.18em;
+                text-transform: uppercase;
+                cursor: pointer;
+                font-weight: 500;
+            }
+            .printing-status {
+                margin-top: 22px;
+                color: var(--paper);
+                font-size: 11px;
+                letter-spacing: 0.22em;
+                text-transform: uppercase;
+            }
+            .printing-status .led {
+                display: inline-block;
+                width: 6px;
+                height: 6px;
+                border-radius: 999px;
+                background: #e8c34a;
+                margin-right: 8px;
+                animation: gram-blink 0.8s ease-in-out infinite alternate;
+            }
+
+            /* ─── Mobile ─────────────────────────────── */
+            @media (max-width: 720px) {
+                .topbar {
+                    padding: 12px 14px;
+                }
+                .brand-sub {
+                    display: none;
+                }
+                .brand-text {
+                    font-size: 18px;
+                }
+                .stamp-pill {
+                    font-size: 9px;
+                    padding: 3px 7px;
+                }
+                .mode-btn {
+                    padding: 6px 12px;
+                    font-size: 10px;
+                }
+                .layout {
+                    flex-direction: column;
+                }
+                .tools-rail {
+                    width: 100%;
+                    flex-direction: row;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 10px 14px;
+                    border-right: none;
+                    border-bottom: 1px solid var(--rule);
+                    overflow-x: auto;
+                    overflow-y: hidden;
+                    -webkit-overflow-scrolling: touch;
+                    scrollbar-width: none;
+                }
+                .tools-rail::-webkit-scrollbar {
+                    display: none;
+                }
+                .tools-rail .rail-label,
+                .tools-rail .rail-spacer {
+                    display: none;
+                }
+                .tool-btn {
+                    width: 42px;
+                    height: 42px;
+                }
+                .size-pip {
+                    width: 34px;
+                    height: 34px;
+                }
+                .rail-divider {
+                    width: 1px;
+                    height: 28px;
+                    background: var(--rule);
+                    flex: 0 0 auto;
+                    margin: 0 4px;
+                }
+                .canvas-col {
+                    padding: 14px;
+                    gap: 0;
+                    flex-direction: column;
+                }
+                .marginalia {
+                    display: none;
+                }
+                .canvas-footer {
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }
+                .footer-mid {
+                    display: none;
+                }
+                .submit-btn {
+                    margin-left: auto;
+                }
+                .printer-body {
+                    width: 240px;
+                }
+                .receipt-paper {
+                    width: 200px;
+                }
+            }
+            @media (min-width: 721px) {
+                .rail-divider {
+                    display: none;
+                }
             }
         </style>
     </head>
     <body>
-        <nav class="navbar">
-            <a href="/" class="active">Draw</a>
-            <a href="/photo/">Photo</a>
-        </nav>
-
-        <div class="container">
-            <h1>Draw Something</h1>
-            <div id="thankYouMessage" class="message success">
-                Thank you for submitting your drawing!
-            </div>
-            <div id="errorMessage" class="message error">
-                Failed to submit drawing. Please try again.
-            </div>
-            <div class="tools">
-                <div class="brush-size-controls">
-                    <div class="brush-options">
-                        <button class="brush-size-btn" data-size="1">
-                            <div class="brush-preview thin"></div>
-                        </button>
-                        <button class="brush-size-btn active" data-size="3">
-                            <div class="brush-preview medium"></div>
-                        </button>
-                        <button class="brush-size-btn" data-size="6">
-                            <div class="brush-preview thick"></div>
-                        </button>
-                    </div>
-                </div>
-                <div class="tool-controls">
-                    <button id="penBtn" class="tool-btn active" data-tool="pen">
-                        <svg
-                            class="tool-icon"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <path
-                                d="M19.5 5.5L18.5 4.5C17.7 3.7 16.3 3.7 15.5 4.5L4 16L3 21L8 20L19.5 8.5C20.3 7.7 20.3 6.3 19.5 5.5Z"
-                                fill="#FFC107"
-                            />
-                            <path
-                                d="M4 16L3 21L8 20L19.5 8.5C20.3 7.7 20.3 6.3 19.5 5.5L18.5 4.5C17.7 3.7 16.3 3.7 15.5 4.5L4 16Z"
-                                stroke="#000"
-                                stroke-width="1"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            />
-                            <path
-                                d="M15.5 4.5L19.5 8.5"
-                                stroke="#000"
-                                stroke-width="1"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            />
-                            <rect
-                                x="3.5"
-                                y="17"
-                                width="3"
-                                height="2"
-                                fill="#E91E63"
-                            />
-                        </svg>
-                    </button>
-                    <button id="eraserBtn" class="tool-btn" data-tool="eraser">
-                        <svg
-                            class="tool-icon"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <rect
-                                x="4"
-                                y="14"
-                                width="12"
-                                height="5"
-                                rx="1"
-                                fill="#F5F5F5"
-                                stroke="#000"
-                                stroke-width="1"
-                            />
-                            <rect
-                                x="16"
-                                y="14"
-                                width="4"
-                                height="5"
-                                fill="#FF5252"
-                                stroke="#000"
-                                stroke-width="1"
-                            />
-                            <path
-                                d="M4 15C4 14.4477 4.44772 14 5 14H16C16.5523 14 17 14.4477 17 15V19C17 19.5523 16.5523 20 16 20H5C4.44772 20 4 19.5523 4 19V15Z"
-                                fill="#F5F5F5"
-                                stroke="#000"
-                                stroke-width="1"
-                            />
-                            <rect
-                                x="16"
-                                y="14"
-                                width="4"
-                                height="5"
-                                fill="#FF5252"
-                                stroke="#000"
-                                stroke-width="1"
-                            />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-            <canvas id="drawingCanvas" width="600" height="400"></canvas>
-            <div style="display: flex; gap: 10px">
-                <button id="undoBtn">
-                    <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
+        <div class="app">
+            <header class="topbar">
+                <div class="brand">
+                    <div class="logo">g</div>
+                    <span class="brand-text"
+                        >gram<span class="brand-sub"> · receipt lab</span></span
                     >
-                        <path
-                            d="M8 3L4 7L8 11"
+                </div>
+                <div class="topbar-right">
+                    <span id="stamp" class="stamp-pill">№ 0001</span>
+                    <nav class="mode-nav">
+                        <a href="/" class="mode-btn active">Draw</a>
+                        <a href="/photo/" class="mode-btn">Photo</a>
+                    </nav>
+                </div>
+            </header>
+
+            <main class="layout">
+                <aside class="tools-rail">
+                    <div class="rail-label">tools</div>
+                    <button
+                        class="tool-btn active"
+                        data-tool="pen"
+                        title="Pen"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
                             stroke="currentColor"
-                            stroke-width="2"
+                            stroke-width="1.6"
                             stroke-linecap="round"
                             stroke-linejoin="round"
-                        />
-                        <path
-                            d="M4 7H12C12.5304 7 13.0391 7.21071 13.4142 7.58579C13.7893 7.96086 14 8.46957 14 9V13"
+                        >
+                            <path
+                                d="M3 21l3.5-1 11-11-2.5-2.5L4 17.5 3 21z"
+                            />
+                            <path d="M14 7l3 3" />
+                        </svg>
+                    </button>
+                    <button
+                        class="tool-btn"
+                        data-tool="eraser"
+                        title="Eraser"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
                             stroke="currentColor"
-                            stroke-width="2"
+                            stroke-width="1.6"
                             stroke-linecap="round"
                             stroke-linejoin="round"
-                        />
-                    </svg>
-                    Undo
-                </button>
-                <button id="clearBtn">Clear</button>
-                <button id="submitBtn">Submit</button>
+                        >
+                            <path d="M3 17l8-8 7 7-5 5H6l-3-4z" />
+                            <path d="M9 11l6 6" />
+                        </svg>
+                    </button>
+                    <button class="tool-btn" data-tool="line" title="Line">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M4 20L20 4" />
+                        </svg>
+                    </button>
+                    <button
+                        class="tool-btn"
+                        data-tool="rect"
+                        title="Rectangle"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <rect x="4" y="6" width="16" height="12" rx="1" />
+                        </svg>
+                    </button>
+                    <button
+                        class="tool-btn"
+                        data-tool="circle"
+                        title="Circle"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="12" cy="12" r="7.5" />
+                        </svg>
+                    </button>
+                    <button class="tool-btn" data-tool="text" title="Text">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M5 6V5h14v1" />
+                            <path d="M12 5v14" />
+                            <path d="M9 19h6" />
+                        </svg>
+                    </button>
+
+                    <div class="rail-divider"></div>
+                    <div class="rail-spacer"></div>
+                    <div class="rail-label">weight</div>
+                    <button class="size-pip" data-size="2" title="2px">
+                        <span style="width: 2px; height: 2px"></span>
+                    </button>
+                    <button
+                        class="size-pip active"
+                        data-size="4"
+                        title="4px"
+                    >
+                        <span style="width: 4px; height: 4px"></span>
+                    </button>
+                    <button class="size-pip" data-size="8" title="8px">
+                        <span style="width: 8px; height: 8px"></span>
+                    </button>
+                    <button class="size-pip" data-size="14" title="14px">
+                        <span style="width: 14px; height: 14px"></span>
+                    </button>
+                </aside>
+
+                <section class="canvas-col">
+                    <div class="canvas-stack">
+                        <div class="paper-sheet" id="paperSheet">
+                            <div class="paper-rules"></div>
+                            <div class="paper-margin">
+                                <span></span><span></span><span></span
+                                ><span></span><span></span><span></span
+                                ><span></span><span></span><span></span
+                                ><span></span><span></span><span></span>
+                            </div>
+                            <canvas
+                                id="canvas"
+                                width="760"
+                                height="520"
+                            ></canvas>
+                        </div>
+
+                        <div class="canvas-footer">
+                            <div class="footer-left">
+                                <button id="undoBtn" class="text-btn" disabled>
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.6"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M9 14L4 9l5-5" />
+                                        <path
+                                            d="M4 9h10a6 6 0 010 12h-3"
+                                        />
+                                    </svg>
+                                    Undo
+                                </button>
+                                <button id="clearBtn" class="text-btn">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.6"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M4 7h16" />
+                                        <path d="M9 7V4h6v3" />
+                                        <path d="M6 7l1 13h10l1-13" />
+                                    </svg>
+                                    Clear
+                                </button>
+                            </div>
+                            <div class="footer-mid">
+                                <span
+                                    >tool ·
+                                    <span id="curTool" class="em">pen</span></span
+                                >
+                                <span class="sep">/</span>
+                                <span
+                                    >weight ·
+                                    <span id="curSize" class="em">4px</span></span
+                                >
+                            </div>
+                            <button id="submitBtn" class="submit-btn">
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.6"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M6 9V3h12v6" />
+                                    <rect
+                                        x="3"
+                                        y="9"
+                                        width="18"
+                                        height="9"
+                                        rx="1"
+                                    />
+                                    <rect
+                                        x="6"
+                                        y="14"
+                                        width="12"
+                                        height="7"
+                                    />
+                                    <circle
+                                        cx="17"
+                                        cy="12"
+                                        r=".6"
+                                        fill="currentColor"
+                                    />
+                                </svg>
+                                Send to printer
+                            </button>
+                        </div>
+                    </div>
+
+                    <aside class="marginalia">
+                        <div>
+                            <div class="quote">
+                                "A drawing is
+                                <span class="quote-hl">simply a line</span>
+                                going for a walk."
+                                <div class="quote-author">— Paul Klee</div>
+                            </div>
+                        </div>
+                        <div class="shortcuts">
+                            <div class="micro-label">shortcuts</div>
+                            <div class="shortcut-grid">
+                                <kbd>P</kbd><span>Pen</span>
+                                <kbd>E</kbd><span>Eraser</span>
+                                <kbd>L</kbd><span>Line</span>
+                                <kbd>R</kbd><span>Rect</span>
+                                <kbd>C</kbd><span>Circle</span>
+                                <kbd>T</kbd><span>Text</span>
+                                <kbd>⌘Z</kbd><span>Undo</span>
+                                <kbd>↵</kbd><span>Print</span>
+                            </div>
+                        </div>
+                    </aside>
+                </section>
+            </main>
+
+            <div id="errorToast" class="toast error">
+                Failed to send. Please try again.
+            </div>
+
+            <div id="printOverlay" class="print-overlay" style="display: none">
+                <div class="printer-stack">
+                    <div class="printer-body">
+                        <div class="printer-slot"></div>
+                        <div class="printer-led"></div>
+                        <div class="printer-base"></div>
+                    </div>
+                    <div class="receipt-paper" id="receiptPaper">
+                        <div class="receipt-header">
+                            <div class="receipt-title">gram</div>
+                            <div class="receipt-sub">receipt lab</div>
+                        </div>
+                        <div class="receipt-meta">
+                            <span id="receiptDate"></span>
+                            <span id="receiptTime"></span>
+                        </div>
+                        <img id="receiptImg" alt="" />
+                        <div class="receipt-foot">
+                            <span id="receiptStamp"></span> · thank you
+                        </div>
+                    </div>
+                    <div id="printingStatus" class="printing-status">
+                        <span class="led"></span>printing<span id="dots"
+                            >...</span
+                        >
+                    </div>
+                    <button
+                        id="newSheetBtn"
+                        class="new-sheet-btn"
+                        style="display: none"
+                    >
+                        New sheet ↵
+                    </button>
+                </div>
             </div>
         </div>
 
         <script>
-            // Global variables
-            var brushSize = 3; // Set default brush size to medium (3)
-            var currentTool = "pen"; // Default tool is pen
+            (function () {
+                const canvas = document.getElementById("canvas");
+                const ctx = canvas.getContext("2d", { willReadFrequently: true });
+                const W = canvas.width;
+                const H = canvas.height;
+                const BG = "#fffdf6";
+                const FG = "#1a1714";
 
-            document.addEventListener("DOMContentLoaded", function () {
-                const canvas = document.getElementById("drawingCanvas");
-                const ctx = canvas.getContext("2d", {
-                    willReadFrequently: true,
-                });
-                const submitBtn = document.getElementById("submitBtn");
-                const clearBtn = document.getElementById("clearBtn");
-                const undoBtn = document.getElementById("undoBtn");
-                const thankYouMessage =
-                    document.getElementById("thankYouMessage");
-                const errorMessage = document.getElementById("errorMessage");
-                const brushSizeButtons =
-                    document.querySelectorAll(".brush-size-btn");
-                const toolButtons = document.querySelectorAll(".tool-btn");
-                const penBtn = document.getElementById("penBtn");
-                const eraserBtn = document.getElementById("eraserBtn");
-
+                let tool = "pen";
+                let size = 4;
                 let isDrawing = false;
-                let currentStroke = []; // Store the current stroke points
-                let undoStack = []; // Stack to store canvas states for undo functionality
-                let hasDrawnSinceLastSave = false; // Track if drawing has occurred since last save
-                let dpr = window.devicePixelRatio || 1; // Store the device pixel ratio
+                const history = [];
+                const HISTORY_MAX = 40;
+                let startPt = null;
+                let lastPt = null;
+                let baseImg = null;
 
-                // Setup high DPI canvas
-                setupHighDPICanvas(canvas);
+                let counter =
+                    parseInt(localStorage.getItem("gram-counter") || "1", 10) ||
+                    1;
 
-                // Initial drawing settings
-                ctx.lineWidth = brushSize;
-                ctx.lineCap = "round";
-                ctx.lineJoin = "round";
-                ctx.strokeStyle = "black";
+                // ─── Init canvas ──────────────────────────
+                function fillBackground() {
+                    ctx.fillStyle = BG;
+                    ctx.fillRect(0, 0, W, H);
+                }
+                function pushHistory() {
+                    const snap = ctx.getImageData(0, 0, W, H);
+                    history.push(snap);
+                    if (history.length > HISTORY_MAX) history.shift();
+                    refreshUndoBtn();
+                }
+                function clearAll() {
+                    fillBackground();
+                    history.length = 0;
+                    pushHistory();
+                }
+                function refreshUndoBtn() {
+                    document.getElementById("undoBtn").disabled =
+                        history.length <= 1;
+                }
+                fillBackground();
+                pushHistory();
 
-                // Save initial blank canvas state
-                saveCanvasState();
+                // ─── Pointer position ─────────────────────
+                function getPos(e) {
+                    const r = canvas.getBoundingClientRect();
+                    const sx = W / r.width;
+                    const sy = H / r.height;
+                    return {
+                        x: (e.clientX - r.left) * sx,
+                        y: (e.clientY - r.top) * sy,
+                    };
+                }
 
-                // Brush size controls
-                brushSizeButtons.forEach((btn) => {
-                    btn.addEventListener("click", function () {
-                        // Update active button UI
-                        brushSizeButtons.forEach((b) =>
-                            b.classList.remove("active"),
-                        );
-                        this.classList.add("active");
-
-                        // Set brush size
-                        brushSize = parseInt(this.getAttribute("data-size"));
-                        ctx.lineWidth = brushSize;
-                    });
-                });
-
-                // Tool controls
-                toolButtons.forEach((btn) => {
-                    btn.addEventListener("click", function () {
-                        // Update active button UI
-                        toolButtons.forEach((b) =>
-                            b.classList.remove("active"),
-                        );
-                        this.classList.add("active");
-
-                        // Set current tool
-                        currentTool = this.getAttribute("data-tool");
-
-                        // Update stroke style based on tool
-                        if (currentTool === "pen") {
-                            ctx.strokeStyle = "black";
-                            ctx.globalCompositeOperation = "source-over";
-                        } else if (currentTool === "eraser") {
-                            ctx.strokeStyle = "white";
-                            ctx.globalCompositeOperation = "destination-out";
-                        }
-                    });
-                });
-
-                // Drawing event listeners
-                canvas.addEventListener("mousedown", startDrawing);
-                canvas.addEventListener("mousemove", draw);
-                canvas.addEventListener("mouseup", stopDrawing);
-                canvas.addEventListener("mouseout", cancelDrawing);
-
-                // Touch support
-                canvas.addEventListener("touchstart", handleTouch);
-                canvas.addEventListener("touchmove", handleTouch);
-                canvas.addEventListener("touchend", stopDrawing);
-
-                // Button event listeners
-                submitBtn.addEventListener("click", submitDrawing);
-                clearBtn.addEventListener("click", clearCanvas);
-                undoBtn.addEventListener("click", undoLastStroke);
-
-                // Keyboard shortcuts
-                document.addEventListener("keydown", function (e) {
-                    // Ctrl+Z or Command+Z for undo
-                    if ((e.ctrlKey || e.metaKey) && e.key === "z") {
-                        e.preventDefault(); // Prevent browser's default undo
-                        undoLastStroke();
+                // ─── Drawing event handlers ───────────────
+                function onPointerDown(e) {
+                    if (tool === "text") {
+                        startTextInput(e);
+                        return;
                     }
-                });
-
-                function startDrawing(e) {
-                    isDrawing = true;
-                    hasDrawnSinceLastSave = true;
-                    currentStroke = []; // Reset current stroke
-
-                    // Get mouse position
-                    const rect = canvas.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-
-                    // Start at a crisp position
-                    const roundX = Math.round(x);
-                    const roundY = Math.round(y);
-
-                    // Add point to current stroke
-                    currentStroke.push({
-                        x: roundX,
-                        y: roundY,
-                        tool: currentTool,
-                        size: brushSize,
-                    });
-
-                    ctx.beginPath();
-                    ctx.moveTo(roundX, roundY);
-                }
-
-                function draw(e) {
-                    if (!isDrawing) return;
-
-                    // Get mouse position
-                    const rect = canvas.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-
-                    // Draw crisp lines by using integer positions
-                    const roundX = Math.round(x);
-                    const roundY = Math.round(y);
-
-                    // Add point to current stroke
-                    currentStroke.push({
-                        x: roundX,
-                        y: roundY,
-                        tool: currentTool,
-                        size: brushSize,
-                    });
-
-                    ctx.lineTo(roundX, roundY);
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(roundX, roundY);
-                }
-
-                function handleTouch(e) {
                     e.preventDefault();
-                    if (e.type === "touchstart") {
-                        isDrawing = true;
-                        hasDrawnSinceLastSave = true;
-                        currentStroke = []; // Reset current stroke
+                    canvas.setPointerCapture &&
+                        canvas.setPointerCapture(e.pointerId);
+                    const p = getPos(e);
+                    isDrawing = true;
+                    startPt = p;
+                    lastPt = p;
+                    baseImg = ctx.getImageData(0, 0, W, H);
 
-                        const touch = e.touches[0];
-                        const rect = canvas.getBoundingClientRect();
-                        const x = touch.clientX - rect.left;
-                        const y = touch.clientY - rect.top;
-
-                        const roundX = Math.round(x);
-                        const roundY = Math.round(y);
-
-                        // Add point to current stroke
-                        currentStroke.push({
-                            x: roundX,
-                            y: roundY,
-                            tool: currentTool,
-                            size: brushSize,
-                        });
-
+                    if (tool === "pen" || tool === "eraser") {
+                        ctx.strokeStyle = tool === "eraser" ? BG : FG;
+                        ctx.fillStyle = tool === "eraser" ? BG : FG;
+                        ctx.lineWidth = size;
+                        ctx.lineCap = "round";
+                        ctx.lineJoin = "round";
                         ctx.beginPath();
-                        ctx.moveTo(roundX, roundY);
+                        ctx.arc(p.x, p.y, size / 2, 0, Math.PI * 2);
+                        ctx.fill();
                     }
+                }
 
-                    if (isDrawing && e.type === "touchmove") {
-                        const touch = e.touches[0];
-                        const rect = canvas.getBoundingClientRect();
-                        const x = touch.clientX - rect.left;
-                        const y = touch.clientY - rect.top;
+                function onPointerMove(e) {
+                    if (!isDrawing) return;
+                    e.preventDefault();
+                    const p = getPos(e);
 
-                        const roundX = Math.round(x);
-                        const roundY = Math.round(y);
-
-                        // Add point to current stroke
-                        currentStroke.push({
-                            x: roundX,
-                            y: roundY,
-                            tool: currentTool,
-                            size: brushSize,
-                        });
-
-                        ctx.lineTo(roundX, roundY);
+                    if (tool === "pen" || tool === "eraser") {
+                        ctx.strokeStyle = tool === "eraser" ? BG : FG;
+                        ctx.lineWidth = size;
+                        ctx.lineCap = "round";
+                        ctx.lineJoin = "round";
+                        ctx.beginPath();
+                        ctx.moveTo(lastPt.x, lastPt.y);
+                        ctx.lineTo(p.x, p.y);
                         ctx.stroke();
+                        lastPt = p;
+                    } else if (
+                        tool === "line" ||
+                        tool === "rect" ||
+                        tool === "circle"
+                    ) {
+                        ctx.putImageData(baseImg, 0, 0);
+                        ctx.strokeStyle = FG;
+                        ctx.lineWidth = size;
+                        ctx.lineCap = "round";
+                        ctx.lineJoin = "round";
+                        const s = startPt;
                         ctx.beginPath();
-                        ctx.moveTo(roundX, roundY);
-                    }
-                }
-
-                function stopDrawing() {
-                    if (isDrawing) {
-                        isDrawing = false;
-                        ctx.beginPath();
-
-                        // Save the current stroke if it has points
-                        if (currentStroke.length > 0) {
-                            // Save canvas state to undo stack
-                            saveCanvasState();
+                        if (tool === "line") {
+                            ctx.moveTo(s.x, s.y);
+                            ctx.lineTo(p.x, p.y);
+                        } else if (tool === "rect") {
+                            const x = Math.min(s.x, p.x),
+                                y = Math.min(s.y, p.y);
+                            const w = Math.abs(p.x - s.x),
+                                h = Math.abs(p.y - s.y);
+                            ctx.rect(x, y, w, h);
+                        } else if (tool === "circle") {
+                            const cx = (s.x + p.x) / 2,
+                                cy = (s.y + p.y) / 2;
+                            const rx = Math.abs(p.x - s.x) / 2,
+                                ry = Math.abs(p.y - s.y) / 2;
+                            ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
                         }
+                        ctx.stroke();
                     }
                 }
 
-                function cancelDrawing() {
-                    // Cancel the current drawing without saving if mouse leaves canvas
+                function onPointerUp() {
+                    if (!isDrawing) return;
                     isDrawing = false;
-                    ctx.beginPath();
-                    currentStroke = [];
+                    pushHistory();
                 }
 
-                function clearCanvas() {
-                    // Save the current state before clearing
-                    if (hasDrawnSinceLastSave) {
-                        saveCanvasState();
+                canvas.addEventListener("pointerdown", onPointerDown);
+                canvas.addEventListener("pointermove", onPointerMove);
+                canvas.addEventListener("pointerup", onPointerUp);
+                canvas.addEventListener("pointercancel", onPointerUp);
+                canvas.addEventListener("pointerleave", onPointerUp);
+
+                // ─── Text tool ────────────────────────────
+                let activeInput = null;
+                let activeTextPos = null;
+
+                function startTextInput(e) {
+                    if (activeInput) commitText();
+                    const p = getPos(e);
+                    activeTextPos = p;
+                    const r = canvas.getBoundingClientRect();
+                    const parent = canvas.offsetParent || document.body;
+                    const pr = parent.getBoundingClientRect();
+                    const left = r.left - pr.left + (p.x / W) * r.width;
+                    const top = r.top - pr.top + (p.y / H) * r.height;
+                    const fontPx = Math.max(14, size * (r.width / W) * 6);
+
+                    const input = document.createElement("input");
+                    input.id = "textInput";
+                    input.placeholder = "type, ↵";
+                    input.style.left = left + "px";
+                    input.style.top = top + "px";
+                    input.style.fontSize = fontPx + "px";
+                    input.dataset.canvasFontPx = String(size * 6 < 14 ? 14 : size * 6);
+                    parent.appendChild(input);
+                    activeInput = input;
+
+                    input.addEventListener("keydown", (ev) => {
+                        if (ev.key === "Enter") {
+                            ev.preventDefault();
+                            commitText();
+                        } else if (ev.key === "Escape") {
+                            ev.preventDefault();
+                            cancelText();
+                        }
+                    });
+                    input.addEventListener("blur", () => {
+                        if (activeInput === input) commitText();
+                    });
+                    setTimeout(() => input.focus(), 30);
+                }
+
+                function commitText() {
+                    if (!activeInput || !activeTextPos) {
+                        cancelText();
+                        return;
                     }
-
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.beginPath();
-
-                    // Reset any error or success messages
-                    thankYouMessage.style.display = "none";
-                    errorMessage.style.display = "none";
-
-                    // Save the empty canvas state
-                    saveCanvasState();
-                }
-
-                function saveCanvasState() {
-                    // Save the current canvas state to the undo stack
-                    const imageData = ctx.getImageData(
-                        0,
-                        0,
-                        canvas.width,
-                        canvas.height,
+                    const value = activeInput.value;
+                    const pos = activeTextPos;
+                    const fontPx = parseFloat(
+                        activeInput.dataset.canvasFontPx || "14"
                     );
-                    undoStack.push(imageData);
-                    hasDrawnSinceLastSave = false;
+                    teardownTextInput();
+                    if (!value.trim()) return;
+                    ctx.fillStyle = FG;
+                    ctx.font =
+                        fontPx +
+                        "px 'JetBrains Mono', ui-monospace, monospace";
+                    ctx.textBaseline = "top";
+                    ctx.fillText(value, pos.x, pos.y);
+                    pushHistory();
                 }
 
-                function undoLastStroke() {
-                    // If there's nothing to undo, return
-                    if (undoStack.length <= 1) return;
-
-                    // Remove the current state
-                    undoStack.pop();
-
-                    // Get the previous state
-                    const previousState = undoStack[undoStack.length - 1];
-
-                    // Load the previous state
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.putImageData(previousState, 0, 0);
+                function cancelText() {
+                    teardownTextInput();
                 }
 
-                function submitDrawing() {
-                    // Disable the submit button
-                    submitBtn.disabled = true;
-                    submitBtn.style.opacity = "0.5";
-                    submitBtn.style.cursor = "not-allowed";
+                function teardownTextInput() {
+                    if (activeInput && activeInput.parentNode) {
+                        activeInput.parentNode.removeChild(activeInput);
+                    }
+                    activeInput = null;
+                    activeTextPos = null;
+                }
 
-                    // Create a temporary canvas to ensure white background
-                    const tempCanvas = document.createElement("canvas");
-                    tempCanvas.width = canvas.width;
-                    tempCanvas.height = canvas.height;
-                    const tempCtx = tempCanvas.getContext("2d");
+                // ─── Undo ─────────────────────────────────
+                function undo() {
+                    if (history.length <= 1) return;
+                    history.pop();
+                    const prev = history[history.length - 1];
+                    ctx.putImageData(prev, 0, 0);
+                    refreshUndoBtn();
+                }
 
-                    // Fill with white background
-                    tempCtx.fillStyle = "white";
-                    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                // ─── UI bindings ──────────────────────────
+                const toolButtons = document.querySelectorAll(".tool-btn");
+                const sizeButtons = document.querySelectorAll(".size-pip");
+                const curToolEl = document.getElementById("curTool");
+                const curSizeEl = document.getElementById("curSize");
 
-                    // Draw the current canvas content on top of the white background
-                    tempCtx.drawImage(canvas, 0, 0);
+                function setTool(next) {
+                    if (activeInput) commitText();
+                    tool = next;
+                    toolButtons.forEach((b) =>
+                        b.classList.toggle(
+                            "active",
+                            b.dataset.tool === tool
+                        )
+                    );
+                    canvas.classList.toggle("tool-text", tool === "text");
+                    curToolEl.textContent = tool;
+                }
+                function setSize(next) {
+                    size = next;
+                    sizeButtons.forEach((b) =>
+                        b.classList.toggle(
+                            "active",
+                            parseInt(b.dataset.size, 10) === size
+                        )
+                    );
+                    curSizeEl.textContent = size + "px";
+                }
 
-                    // Convert the temp canvas (with white background) to PNG blob
-                    tempCanvas.toBlob(function (blob) {
-                        // Create form data with raw PNG bytes
-                        const formData = new FormData();
-                        formData.append("image", blob, "drawing.png");
+                toolButtons.forEach((b) => {
+                    b.addEventListener("click", () =>
+                        setTool(b.dataset.tool)
+                    );
+                });
+                sizeButtons.forEach((b) => {
+                    b.addEventListener("click", () =>
+                        setSize(parseInt(b.dataset.size, 10))
+                    );
+                });
 
-                        // Submit drawing
+                document
+                    .getElementById("undoBtn")
+                    .addEventListener("click", undo);
+                document
+                    .getElementById("clearBtn")
+                    .addEventListener("click", clearAll);
+
+                // ─── Keyboard shortcuts ───────────────────
+                document.addEventListener("keydown", (e) => {
+                    if (
+                        e.target &&
+                        (e.target.tagName === "INPUT" ||
+                            e.target.tagName === "TEXTAREA")
+                    ) {
+                        return;
+                    }
+                    if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+                        e.preventDefault();
+                        undo();
+                        return;
+                    }
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        submit();
+                        return;
+                    }
+                    const map = {
+                        p: "pen",
+                        e: "eraser",
+                        l: "line",
+                        r: "rect",
+                        c: "circle",
+                        t: "text",
+                    };
+                    const k = e.key.toLowerCase();
+                    if (map[k]) {
+                        e.preventDefault();
+                        setTool(map[k]);
+                    }
+                });
+
+                // ─── Stamp / counter ──────────────────────
+                function stampStr(n) {
+                    return "№ " + String(n).padStart(4, "0");
+                }
+                function refreshStamp() {
+                    document.getElementById("stamp").textContent =
+                        stampStr(counter);
+                }
+                refreshStamp();
+
+                // ─── Submit / print overlay ───────────────
+                const overlay = document.getElementById("printOverlay");
+                const receiptImg = document.getElementById("receiptImg");
+                const receiptPaper = document.getElementById("receiptPaper");
+                const printingStatus =
+                    document.getElementById("printingStatus");
+                const newSheetBtn = document.getElementById("newSheetBtn");
+                const errorToast = document.getElementById("errorToast");
+
+                function showError() {
+                    errorToast.style.display = "block";
+                    setTimeout(() => {
+                        errorToast.style.display = "none";
+                    }, 3000);
+                }
+
+                let submitting = false;
+                let printDoneTimer = null;
+                function submit() {
+                    if (submitting) return;
+                    if (overlay.style.display !== "none") return;
+                    submitting = true;
+                    if (activeInput) commitText();
+
+                    // Build a snapshot with white background guaranteed
+                    const tmp = document.createElement("canvas");
+                    tmp.width = W;
+                    tmp.height = H;
+                    const tctx = tmp.getContext("2d");
+                    tctx.fillStyle = "white";
+                    tctx.fillRect(0, 0, W, H);
+                    tctx.drawImage(canvas, 0, 0);
+
+                    receiptImg.src = tmp.toDataURL("image/png");
+
+                    const now = new Date();
+                    document.getElementById("receiptDate").textContent = now
+                        .toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "2-digit",
+                        })
+                        .toUpperCase();
+                    document.getElementById("receiptTime").textContent =
+                        now.toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                        });
+                    document.getElementById("receiptStamp").textContent =
+                        stampStr(counter);
+
+                    overlay.style.display = "flex";
+                    overlay.classList.add("printing");
+                    printingStatus.style.display = "block";
+                    newSheetBtn.style.display = "none";
+                    // Reset paper animation
+                    receiptPaper.style.animation = "none";
+                    void receiptPaper.offsetWidth;
+                    receiptPaper.style.animation = "";
+
+                    // Send to printer
+                    tmp.toBlob(function (blob) {
+                        const fd = new FormData();
+                        fd.append("image", blob, "drawing.png");
                         fetch("/gram/?rotate_if_landscape=false", {
                             method: "POST",
-                            body: formData,
+                            body: fd,
                         })
-                            .then((response) => {
-                                // Re-enable the submit button
-                                submitBtn.disabled = false;
-                                submitBtn.style.opacity = "1";
-                                submitBtn.style.cursor = "pointer";
-
-                                // Hide any previously shown messages
-                                thankYouMessage.style.display = "none";
-                                errorMessage.style.display = "none";
-
-                                if (response.status === 201) {
-                                    // Show thank you message for success
-                                    thankYouMessage.style.display = "block";
-
-                                    // Clear canvas
-                                    clearCanvas();
-
-                                    // Hide success message after 3 seconds
-                                    setTimeout(() => {
-                                        thankYouMessage.style.display = "none";
-                                    }, 3000);
-                                } else {
-                                    // Show error message for non-201 status
-                                    errorMessage.style.display = "block";
-
-                                    // Hide error message after 3 seconds
-                                    setTimeout(() => {
-                                        errorMessage.style.display = "none";
-                                    }, 3000);
-                                }
+                            .then((res) => {
+                                if (res.status !== 201) throw new Error();
                             })
-                            .catch((error) => {
-                                // Re-enable the submit button
-                                submitBtn.disabled = false;
-                                submitBtn.style.opacity = "1";
-                                submitBtn.style.cursor = "pointer";
-
-                                console.error(
-                                    "Error submitting drawing:",
-                                    error,
-                                );
-
-                                // Show error message
-                                errorMessage.style.display = "block";
-
-                                // Hide error message after 3 seconds
-                                setTimeout(() => {
-                                    errorMessage.style.display = "none";
-                                }, 3000);
+                            .catch(() => {
+                                hideOverlay();
+                                showError();
                             });
                     }, "image/png");
+
+                    printDoneTimer = setTimeout(() => {
+                        printDoneTimer = null;
+                        overlay.classList.remove("printing");
+                        printingStatus.style.display = "none";
+                        newSheetBtn.style.display = "inline-block";
+                        submitting = false;
+                    }, 2400);
                 }
-            });
 
-            // Separate the high DPI setup into its own function
-            function setupHighDPICanvas(canvas) {
-                // Get the device pixel ratio
-                const dpr = window.devicePixelRatio || 1;
+                function hideOverlay() {
+                    if (printDoneTimer) {
+                        clearTimeout(printDoneTimer);
+                        printDoneTimer = null;
+                    }
+                    overlay.style.display = "none";
+                    overlay.classList.remove("printing");
+                    submitting = false;
+                }
 
-                // Get the canvas dimensions from CSS
-                const rect = canvas.getBoundingClientRect();
+                function newSheet() {
+                    counter += 1;
+                    localStorage.setItem("gram-counter", String(counter));
+                    refreshStamp();
+                    clearAll();
+                    hideOverlay();
+                }
 
-                // Set the canvas dimensions accounting for the device pixel ratio
-                canvas.width = rect.width * dpr;
-                canvas.height = rect.height * dpr;
+                document
+                    .getElementById("submitBtn")
+                    .addEventListener("click", submit);
+                newSheetBtn.addEventListener("click", newSheet);
 
-                // Get context and scale
-                const ctx = canvas.getContext("2d", {
-                    willReadFrequently: true,
-                });
-                ctx.scale(dpr, dpr);
-
-                // Reset the CSS dimensions
-                canvas.style.width = `${rect.width}px`;
-                canvas.style.height = `${rect.height}px`;
-
-                // Enable image smoothing for sharper lines
-                ctx.imageSmoothingEnabled = false;
-            }
+                // Animated dots in printing status (subtle)
+                const dotsEl = document.getElementById("dots");
+                let dotN = 0;
+                setInterval(() => {
+                    dotN = (dotN + 1) % 4;
+                    dotsEl.textContent = ".".repeat(dotN);
+                }, 350);
+            })();
         </script>
     </body>
 </html>

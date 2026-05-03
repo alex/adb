@@ -6,8 +6,8 @@ use image::buffer::ConvertBuffer;
 
 static TODOIST_API_TOKEN: std::sync::LazyLock<String> =
     std::sync::LazyLock::new(|| std::env::var("TODOIST_API_TOKEN").expect("Missing env var"));
-static ANTHROPIC_API_TOKEN: std::sync::LazyLock<String> =
-    std::sync::LazyLock::new(|| std::env::var("ANTHROPIC_API_TOKEN").expect("Missing env var"));
+static ANTHROPIC_API_TOKEN: std::sync::LazyLock<Option<String>> =
+    std::sync::LazyLock::new(|| std::env::var("ANTHROPIC_API_TOKEN").ok());
 static COURTLISTENER_WEBHOOK_SECRET: std::sync::LazyLock<Option<String>> =
     std::sync::LazyLock::new(|| std::env::var("COURTLISTENER_WEBHOOK_SECRET").ok());
 
@@ -74,7 +74,9 @@ async fn adb() -> anyhow::Result<()> {
     let us_history_fact_fut = async {
         adb::anthropic::get_completion(
             &client,
-            &ANTHROPIC_API_TOKEN,
+            ANTHROPIC_API_TOKEN
+                .as_ref()
+                .expect("Anthropic API token not present"),
             [adb::anthropic::MessageContent::Text {
                 text: &us_history_prompt,
             }],
@@ -193,11 +195,13 @@ async fn post_gram(
     let mut img: image::GrayImage = img.convert();
     image::imageops::colorops::dither(&mut img, &image::imageops::colorops::BiLevel);
 
-    let description = if matches!(opts.description, None | Some(true)) {
+    let description = if matches!(opts.description, None | Some(true))
+        && let Some(anthropic_api_token) = ANTHROPIC_API_TOKEN.as_ref()
+    {
         let client = reqwest::Client::new();
         Some(adb::anthropic::get_completion(
             &client,
-            &ANTHROPIC_API_TOKEN,
+            &anthropic_api_token,
             [
                 adb::anthropic::MessageContent::Text {
                     text: "Write a short description of what's depicted in the drawing. It should be at most a sentence. If the drawing prompts you with a question, you should try to answer!",
@@ -267,7 +271,14 @@ async fn post_courtlistener_webhook(
     axum::Json(webhook): axum::Json<adb::courtlistener::CourtListenerWebhook>,
 ) -> Result<axum::http::StatusCode, AppError> {
     let client = reqwest::Client::new();
-    adb::courtlistener::handle_webhook(&client, &ANTHROPIC_API_TOKEN, webhook).await?;
+    adb::courtlistener::handle_webhook(
+        &client,
+        ANTHROPIC_API_TOKEN
+            .as_ref()
+            .expect("Anthropic API token not present"),
+        webhook,
+    )
+    .await?;
     Ok(axum::http::StatusCode::OK)
 }
 
