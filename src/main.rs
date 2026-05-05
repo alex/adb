@@ -113,7 +113,15 @@ async fn adb() -> anyhow::Result<()> {
     w.underline(false).await?;
 
     for todo in todo_items {
-        w.write_all(format!("[ ] {}\n", todo).as_bytes()).await?;
+        w.write_all(b"[ ] ").await?;
+        if let Some(time) = todo.time {
+            w.emphasize(true).await?;
+            w.write_all(format!("{}", time.format("%-I:%M %p")).as_bytes())
+                .await?;
+            w.emphasize(false).await?;
+            w.write_all(b" ").await?;
+        }
+        w.write_all(format!("{}\n", todo.content).as_bytes()).await?;
     }
 
     w.feed(2).await?;
