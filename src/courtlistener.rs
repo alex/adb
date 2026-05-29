@@ -179,23 +179,32 @@ pub async fn handle_webhook(
     // courtlistener has a 2 second timeout and talking to an LLM + printing on
     // a printer can take longer than that, so we spawn a background task.
     tokio::spawn(async move {
-        // Check all entries and collect substantive ones
-        let mut substantive_entries = Vec::new();
-
-        for entry in webhook.payload.results {
-            if check_if_substantive(&client, api_token, &entry)
-                .await
-                .unwrap()
-            {
-                substantive_entries.push(entry);
-            }
-        }
-
-        // Only print if there are substantive entries
-        if !substantive_entries.is_empty() {
-            print_docket_alerts(&substantive_entries).await.unwrap();
+        if let Err(err) = process_webhook(&client, api_token, webhook).await {
+            tracing::error!(error = ?err, "Failed to process CourtListener webhook");
         }
     });
+
+    Ok(())
+}
+
+async fn process_webhook(
+    client: &reqwest::Client,
+    api_token: &'static str,
+    webhook: CourtListenerWebhook,
+) -> anyhow::Result<()> {
+    // Check all entries and collect substantive ones
+    let mut substantive_entries = Vec::new();
+
+    for entry in webhook.payload.results {
+        if check_if_substantive(client, api_token, &entry).await? {
+            substantive_entries.push(entry);
+        }
+    }
+
+    // Only print if there are substantive entries
+    if !substantive_entries.is_empty() {
+        print_docket_alerts(&substantive_entries).await?;
+    }
 
     Ok(())
 }
