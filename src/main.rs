@@ -121,7 +121,8 @@ async fn adb() -> anyhow::Result<()> {
             w.emphasize(false).await?;
             w.write_all(b" ").await?;
         }
-        w.write_all(format!("{}\n", todo.content).as_bytes()).await?;
+        w.write_all(format!("{}\n", todo.content).as_bytes())
+            .await?;
     }
 
     w.feed(2).await?;
@@ -138,6 +139,7 @@ async fn adb() -> anyhow::Result<()> {
 
 const DRAWING_HTML: &str = include_str!("drawing.html");
 const PHOTO_HTML: &str = include_str!("photo.html");
+const TEXT_HTML: &str = include_str!("text.html");
 
 struct AppError(anyhow::Error);
 
@@ -162,6 +164,48 @@ where
 }
 
 const WIDTH: u16 = 576;
+
+/// Prints the heading shared by everything submitted through the web app.
+async fn print_gram_header<W>(
+    w: &mut epson::Writer<W>,
+    headers: &axum::http::header::HeaderMap,
+    now: chrono::DateTime<chrono::Local>,
+) -> anyhow::Result<()>
+where
+    W: tokio::io::AsyncWrite + Unpin + Send,
+{
+    w.justify(epson::Alignment::Center).await?;
+    w.underline(true).await?;
+    w.write_all(b"Gram\n").await?;
+    w.underline(false).await?;
+    w.write_all(format!("{}\n", now.format("%A %B %d, %Y")).as_bytes())
+        .await?;
+    w.justify(epson::Alignment::Left).await?;
+
+    w.feed(2).await?;
+    w.underline(true).await?;
+    w.write_all(b"Received At:").await?;
+    w.underline(false).await?;
+    w.write_all(format!(" {}\n", now.format("%I:%M:%S %p")).as_bytes())
+        .await?;
+
+    if let Some(peer_ip) = headers.get("X-Forwarded-For") {
+        let peer_ip = peer_ip.to_str()?;
+        w.underline(true).await?;
+        w.write_all(b"Peer IP:").await?;
+        w.underline(false).await?;
+        w.write_all(format!(" {peer_ip}\n").as_bytes()).await?;
+    }
+    if let Some(user_name) = headers.get("X-Gram-User") {
+        let user_name = user_name.to_str()?;
+        w.underline(true).await?;
+        w.write_all(b"User:").await?;
+        w.underline(false).await?;
+        w.write_all(format!(" {user_name}\n").as_bytes()).await?;
+    }
+
+    Ok(())
+}
 
 #[derive(serde::Deserialize)]
 struct PostGramOptions {
@@ -225,38 +269,7 @@ async fn post_gram(
     };
 
     let mut w = adb::printer::new_epson_writer().await?;
-    w.justify(epson::Alignment::Center).await?;
-    w.underline(true).await?;
-    w.write_all(b"Gram\n").await?;
-    w.underline(false).await?;
-    w.justify(epson::Alignment::Left).await?;
-
-    w.justify(epson::Alignment::Center).await?;
-    w.write_all(format!("{}\n", now.format("%A %B %d, %Y")).as_bytes())
-        .await?;
-    w.justify(epson::Alignment::Left).await?;
-
-    w.feed(2).await?;
-    w.underline(true).await?;
-    w.write_all(b"Received At:").await?;
-    w.underline(false).await?;
-    w.write_all(format!(" {}\n", now.format("%I:%M:%S %p")).as_bytes())
-        .await?;
-
-    if let Some(peer_ip) = headers.get("X-Forwarded-For") {
-        let peer_ip = peer_ip.to_str()?;
-        w.underline(true).await?;
-        w.write_all(b"Peer IP:").await?;
-        w.underline(false).await?;
-        w.write_all(format!(" {peer_ip}\n").as_bytes()).await?;
-    }
-    if let Some(user_name) = headers.get("X-Gram-User") {
-        let user_name = user_name.to_str()?;
-        w.underline(true).await?;
-        w.write_all(b"User:").await?;
-        w.underline(false).await?;
-        w.write_all(format!(" {user_name}\n").as_bytes()).await?;
-    }
+    print_gram_header(&mut w, &headers, now).await?;
 
     w.feed(2).await?;
     w.print_image(img).await?;
@@ -268,6 +281,64 @@ async fn post_gram(
         w.underline(false).await?;
         w.write_all(format!(" {description}\n").as_bytes()).await?;
     }
+
+    w.feed(5).await?;
+    w.cut().await?;
+
+    Ok(axum::http::StatusCode::CREATED)
+}
+
+const MAX_TEXT_CHARS: usize = 20_000;
+
+#[derive(serde::Deserialize)]
+struct PostTextBody {
+    text: String,
+    markdown: Option<bool>,
+}
+
+async fn post_text(
+    headers: axum::http::header::HeaderMap,
+    axum::Json(body): axum::Json<PostTextBody>,
+) -> Result<axum::http::StatusCode, AppError> {
+    let now = chrono::offset::Local::now();
+
+    if body.text.chars().count() > MAX_TEXT_CHARS {
+        return Ok(axum::http::StatusCode::PAYLOAD_TOO_LARGE);
+    }
+    let lines = if body.markdown.unwrap_or(true) {
+        adb::markdown::render_markdown(&body.text)
+    } else {
+        adb::markdown::render_plain(&body.text)
+    };
+    if lines.is_empty() {
+        return Ok(axum::http::StatusCode::BAD_REQUEST);
+    }
+
+    let mut w = adb::printer::new_epson_writer().await?;
+    print_gram_header(&mut w, &headers, now).await?;
+    w.feed(2).await?;
+
+    for line in lines {
+        w.justify(if line.centered {
+            epson::Alignment::Center
+        } else {
+            epson::Alignment::Left
+        })
+        .await?;
+        // GS ! selects the character size: 0x11 is double width and height.
+        w.write_all(&[0x1d, b'!', if line.double_size { 0x11 } else { 0x00 }])
+            .await?;
+        for (style, text) in &line.spans {
+            w.emphasize(style.bold).await?;
+            w.underline(style.underline).await?;
+            w.write_all(text.as_bytes()).await?;
+        }
+        w.emphasize(false).await?;
+        w.underline(false).await?;
+        w.write_all(b"\n").await?;
+    }
+    w.justify(epson::Alignment::Left).await?;
+    w.write_all(&[0x1d, b'!', 0x00]).await?;
 
     w.feed(5).await?;
     w.cut().await?;
@@ -301,6 +372,10 @@ async fn gram() -> anyhow::Result<()> {
         .route(
             "/photo/",
             axum::routing::get(|| async { axum::response::Html(PHOTO_HTML) }),
+        )
+        .route(
+            "/text/",
+            axum::routing::get(|| async { axum::response::Html(TEXT_HTML) }).post(post_text),
         )
         .route("/gram/", axum::routing::post(post_gram));
 

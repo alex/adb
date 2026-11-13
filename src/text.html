@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Gram · Text</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:opsz,ital,wght@9..144,0,400..900;9..144,1,400..900&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                --paper: #f6f1e7;
+                --paper-deep: #ebe4d3;
+                --canvas-paper: #fffdf6;
+                --ink: #1a1714;
+                --ink-soft: #544c43;
+                --ink-faint: #a89c8a;
+                --rule: #d8cfb9;
+                --accent: #c0392f;
+                --serif: "Fraunces", "Times New Roman", serif;
+                --mono: "JetBrains Mono", ui-monospace, monospace;
+            }
+            * { box-sizing: border-box; }
+            html, body { margin: 0; padding: 0; height: 100%; }
+            body {
+                background-color: var(--paper);
+                background-image: radial-gradient(var(--rule) 1px, transparent 1px);
+                background-size: 14px 14px;
+                color: var(--ink);
+                font-family: var(--mono);
+                font-size: 12px;
+                min-height: 100%;
+            }
+            button { font-family: inherit; }
+
+            .topbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                padding: 18px 28px;
+                background: var(--paper);
+                border-bottom: 1px solid var(--rule);
+            }
+            .brand {
+                display: flex; align-items: center; gap: 14px;
+                min-width: 0; flex: 1 1 auto;
+            }
+            .logo {
+                width: 28px; height: 28px; border-radius: 6px;
+                background: var(--ink); color: var(--paper);
+                font-family: var(--serif);
+                font-weight: 700; font-style: italic;
+                font-size: 17px; line-height: 1; padding-bottom: 2px;
+                display: flex; align-items: center; justify-content: center;
+                flex: 0 0 auto;
+            }
+            .brand-text {
+                font-family: var(--serif); font-weight: 600;
+                font-size: 20px; letter-spacing: -0.01em;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            }
+            .brand-sub { color: var(--ink-faint); font-style: italic; font-weight: 400; }
+            .topbar-right { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
+            .mode-nav {
+                display: flex; align-items: center; gap: 2px; padding: 3px;
+                background: var(--paper-deep); border: 1px solid var(--rule);
+                border-radius: 999px;
+            }
+            .mode-btn {
+                padding: 7px 18px;
+                background: transparent; color: var(--ink-soft);
+                border: none; border-radius: 999px; cursor: pointer;
+                font-family: var(--mono); font-size: 11px;
+                letter-spacing: 0.16em; text-transform: uppercase;
+                font-weight: 500; text-decoration: none;
+                transition: all 0.12s;
+            }
+            .mode-btn.active { background: var(--ink); color: var(--paper); font-weight: 600; }
+
+            .container {
+                display: flex; flex-direction: column; align-items: center;
+                max-width: 800px; width: 100%;
+                margin: 0 auto;
+                padding: 28px 20px 40px;
+            }
+
+            .label {
+                font-size: 10px; letter-spacing: 0.2em;
+                color: var(--ink-faint); text-transform: uppercase;
+                margin-bottom: 6px; align-self: flex-start;
+            }
+            h1 {
+                margin: 0 0 24px;
+                font-family: var(--serif);
+                font-style: italic; font-weight: 500;
+                font-size: 28px; line-height: 1.05;
+                color: var(--ink);
+                align-self: flex-start;
+            }
+
+            .format-row {
+                display: flex; align-items: center; justify-content: space-between;
+                gap: 12px; width: 100%; margin-bottom: 12px;
+            }
+            .format-btn { border: none; }
+            .count { color: var(--ink-faint); letter-spacing: 0.08em; }
+            .count.over { color: var(--accent); }
+            #text {
+                width: 100%; min-height: 320px; resize: vertical;
+                padding: 16px 18px; margin-bottom: 8px;
+                background: var(--canvas-paper); color: var(--ink);
+                border: 1px solid var(--rule); border-radius: 2px;
+                box-shadow:
+                    0 1px 0 rgba(0,0,0,0.04),
+                    0 16px 28px -16px rgba(40,30,20,0.18);
+                font-family: var(--mono); font-size: 14px; line-height: 1.5;
+            }
+            #text:focus { outline: 2px solid var(--ink); outline-offset: 2px; }
+            .hint {
+                align-self: flex-start; margin: 0 0 20px;
+                color: var(--ink-soft); line-height: 1.6;
+            }
+            .hint.hidden { visibility: hidden; }
+            #printBtn {
+                display: flex; align-items: center; gap: 10px;
+                padding: 12px 22px; margin-bottom: 20px;
+                background: var(--ink); color: var(--paper);
+                border: 1px solid var(--ink); border-radius: 6px;
+                font-family: var(--mono); font-size: 11px;
+                letter-spacing: 0.18em; text-transform: uppercase;
+                cursor: pointer; font-weight: 500;
+            }
+            #printBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+            #printBtn svg { width: 14px; height: 14px; }
+
+            .message {
+                margin-bottom: 20px; padding: 12px 16px;
+                border-radius: 6px; width: 100%;
+                text-align: center; box-sizing: border-box;
+                font-family: var(--mono); font-size: 11px;
+                letter-spacing: 0.12em; text-transform: uppercase;
+                display: none;
+            }
+            .success {
+                background: var(--canvas-paper); color: var(--ink);
+                border: 1px solid var(--rule);
+            }
+            .error {
+                background: rgba(192, 57, 47, 0.92); color: var(--paper);
+            }
+            @media (max-width: 720px) {
+                .topbar { padding: 12px 16px; }
+                .brand-sub { display: none; }
+                .mode-btn { padding: 7px 12px; letter-spacing: 0.1em; }
+            }
+        </style>
+    </head>
+    <body>
+        <header class="topbar">
+            <div class="brand">
+                <div class="logo">g</div>
+                <span class="brand-text">gram<span class="brand-sub"> · receipt lab</span></span>
+            </div>
+            <div class="topbar-right">
+                <nav class="mode-nav">
+                    <a href="/" class="mode-btn">Draw</a>
+                    <a href="/photo/" class="mode-btn">Photo</a>
+                    <a href="/text/" class="mode-btn active">Text</a>
+                </nav>
+            </div>
+        </header>
+
+        <div class="container">
+            <div class="label">prompt</div>
+            <h1>write something down</h1>
+
+            <div class="format-row">
+                <div class="mode-nav" role="group" aria-label="Format">
+                    <button type="button" class="mode-btn format-btn active" data-markdown="true" aria-pressed="true">Markdown</button>
+                    <button type="button" class="mode-btn format-btn" data-markdown="false" aria-pressed="false">Plain text</button>
+                </div>
+                <span id="count" class="count">0 / 20,000</span>
+            </div>
+
+            <textarea id="text" aria-label="Text to print" spellcheck="true" autofocus
+                placeholder="# Hello&#10;&#10;Some **bold** and *underlined* words.&#10;&#10;- a list item&#10;- [ ] something to do"></textarea>
+            <p id="hint" class="hint">
+                # titles print large · **bold** · *underline* · lists, quotes, and code blocks work too
+            </p>
+
+            <button id="printBtn" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 9V3h12v6"/>
+                    <rect x="3" y="9" width="18" height="9" rx="1"/>
+                    <rect x="6" y="14" width="12" height="7"/>
+                    <circle cx="17" cy="12" r=".6" fill="currentColor"/>
+                </svg>
+                Print
+            </button>
+
+            <div id="successMessage" class="message success" role="status">
+                Sent to printer
+            </div>
+            <div id="errorMessage" class="message error" role="alert">
+                Failed to send. Please try again.
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const MAX_CHARS = 20000;
+                const text = document.getElementById("text");
+                const count = document.getElementById("count");
+                const hint = document.getElementById("hint");
+                const printBtn = document.getElementById("printBtn");
+                const successMessage = document.getElementById("successMessage");
+                const errorMessage = document.getElementById("errorMessage");
+                const formatBtns = document.querySelectorAll(".format-btn");
+
+                let markdown = true;
+                let sending = false;
+
+                function update() {
+                    // Count code points, the same way the server does.
+                    const length = Array.from(text.value).length;
+                    count.textContent =
+                        length.toLocaleString("en-US") + " / " + MAX_CHARS.toLocaleString("en-US");
+                    count.classList.toggle("over", length > MAX_CHARS);
+                    printBtn.disabled =
+                        sending || text.value.trim() === "" || length > MAX_CHARS;
+                }
+
+                formatBtns.forEach((btn) => {
+                    btn.addEventListener("click", () => {
+                        markdown = btn.dataset.markdown === "true";
+                        formatBtns.forEach((b) => {
+                            b.classList.toggle("active", b === btn);
+                            b.setAttribute("aria-pressed", String(b === btn));
+                        });
+                        hint.classList.toggle("hidden", !markdown);
+                    });
+                });
+
+                function show(message) {
+                    successMessage.style.display = "none";
+                    errorMessage.style.display = "none";
+                    message.style.display = "block";
+                    setTimeout(() => { message.style.display = "none"; }, 3000);
+                }
+
+                function print() {
+                    if (printBtn.disabled) return;
+                    sending = true;
+                    update();
+                    fetch("/text/", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ text: text.value, markdown: markdown }),
+                    })
+                        .then((response) => {
+                            if (response.status === 201) {
+                                text.value = "";
+                                show(successMessage);
+                            } else {
+                                show(errorMessage);
+                            }
+                        })
+                        .catch((error) => {
+                            console.error("Error submitting text:", error);
+                            show(errorMessage);
+                        })
+                        .finally(() => {
+                            sending = false;
+                            update();
+                        });
+                }
+
+                text.addEventListener("input", update);
+                text.addEventListener("keydown", (e) => {
+                    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") print();
+                });
+                printBtn.addEventListener("click", print);
+                update();
+            });
+        </script>
+    </body>
+</html>
